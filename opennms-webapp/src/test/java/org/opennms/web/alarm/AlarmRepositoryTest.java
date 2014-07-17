@@ -39,9 +39,9 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.opennms.core.spring.BeanUtils;
 import org.opennms.core.test.OpenNMSJUnit4ClassRunner;
 import org.opennms.core.test.db.annotations.JUnitTemporaryDatabase;
-import org.opennms.core.utils.BeanUtils;
 import org.opennms.netmgt.dao.DatabasePopulator;
 import org.opennms.netmgt.dao.api.AlarmDao;
 import org.opennms.netmgt.dao.api.AlarmRepository;
@@ -72,6 +72,7 @@ import org.springframework.transaction.annotation.Transactional;
 })
 @JUnitConfigurationEnvironment
 @JUnitTemporaryDatabase
+@Transactional
 public class AlarmRepositoryTest implements InitializingBean {
     
     @Autowired
@@ -152,9 +153,9 @@ public class AlarmRepositoryTest implements InitializingBean {
     @Test
     @JUnitTemporaryDatabase
     public void testGetUnacknowledgedAlarms() {
-        OnmsCriteria acked = AlarmUtil.getOnmsCriteria(new AlarmCriteria(AcknowledgeType.ACKNOWLEDGED, new Filter[0]));
-        OnmsCriteria unacked = AlarmUtil.getOnmsCriteria(new AlarmCriteria(AcknowledgeType.UNACKNOWLEDGED, new Filter[0]));
-        OnmsCriteria all = AlarmUtil.getOnmsCriteria(new AlarmCriteria(AcknowledgeType.BOTH, new Filter[0]));
+        OnmsCriteria acked = AlarmUtil.getOnmsCriteria(new AlarmCriteria(new Filter[0], AcknowledgeType.ACKNOWLEDGED));
+        OnmsCriteria unacked = AlarmUtil.getOnmsCriteria(new AlarmCriteria(new Filter[0], AcknowledgeType.UNACKNOWLEDGED));
+        OnmsCriteria all = AlarmUtil.getOnmsCriteria(new AlarmCriteria(new Filter[0], AcknowledgeType.BOTH));
         
         int countAll = m_alarmRepo.countMatchingAlarms(all);
         int countAcked = m_alarmRepo.countMatchingAlarms(acked);

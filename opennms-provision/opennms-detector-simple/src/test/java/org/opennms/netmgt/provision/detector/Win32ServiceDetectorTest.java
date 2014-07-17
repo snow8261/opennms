@@ -36,10 +36,10 @@ import java.net.UnknownHostException;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.opennms.core.spring.BeanUtils;
 import org.opennms.core.test.MockLogAppender;
 import org.opennms.core.test.OpenNMSJUnit4ClassRunner;
 import org.opennms.core.test.snmp.annotations.JUnitSnmpAgent;
-import org.opennms.core.utils.BeanUtils;
 import org.opennms.core.utils.InetAddressUtils;
 import org.opennms.netmgt.provision.detector.snmp.Win32ServiceDetector;
 import org.springframework.beans.factory.InitializingBean;
@@ -53,7 +53,7 @@ import org.springframework.test.context.ContextConfiguration;
 })
 @JUnitSnmpAgent(host=Win32ServiceDetectorTest.TEST_IP_ADDRESS, resource="classpath:org/opennms/netmgt/provision/detector/windows2003.properties")
 public class Win32ServiceDetectorTest implements InitializingBean {
-    static final String TEST_IP_ADDRESS = "172.20.1.205";
+    static final String TEST_IP_ADDRESS = "192.0.2.1";
 
     @Autowired
     private Win32ServiceDetector m_detector;
@@ -67,8 +67,8 @@ public class Win32ServiceDetectorTest implements InitializingBean {
     public void setUp() throws InterruptedException {
         MockLogAppender.setupLogging();
 
-        m_detector.setRetries(1);
-        m_detector.setTimeout(500);
+        m_detector.setRetries(2);
+        m_detector.setTimeout(5000);
         m_detector.setWin32ServiceName("VMware Tools Service");
     }
     

@@ -34,13 +34,13 @@ import static org.junit.Assert.assertTrue;
 import java.net.InetAddress;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.opennms.core.spring.BeanUtils;
 import org.opennms.core.tasks.Task;
 import org.opennms.core.test.MockLogAppender;
 import org.opennms.core.test.OpenNMSJUnit4ClassRunner;
@@ -49,7 +49,6 @@ import org.opennms.core.test.snmp.MockSnmpDataProviderAware;
 import org.opennms.core.test.snmp.ProxySnmpAgentConfigFactory;
 import org.opennms.core.test.snmp.annotations.JUnitSnmpAgent;
 import org.opennms.core.test.snmp.annotations.JUnitSnmpAgents;
-import org.opennms.core.utils.BeanUtils;
 import org.opennms.core.utils.InetAddressUtils;
 import org.opennms.netmgt.EventConstants;
 import org.opennms.netmgt.config.SnmpPeerFactory;
@@ -76,7 +75,7 @@ import org.springframework.test.context.ContextConfiguration;
 @ContextConfiguration(locations = {
         "classpath:/META-INF/opennms/applicationContext-soa.xml",
         "classpath:/META-INF/opennms/applicationContext-mockDao.xml",
-        "classpath:/META-INF/opennms/applicationContext-mockEventd.xml",
+        "classpath:/META-INF/opennms/applicationContext-daemon.xml",
         "classpath:/META-INF/opennms/applicationContext-proxy-snmp.xml",
         "classpath:/META-INF/opennms/mockEventIpcManager.xml",
         "classpath:/META-INF/opennms/applicationContext-provisiond.xml",
@@ -87,7 +86,7 @@ import org.springframework.test.context.ContextConfiguration;
 })
 @JUnitConfigurationEnvironment(systemProperties="org.opennms.provisiond.enableDiscovery=false")
 @DirtiesContext
-public class DragonWaveNodeSwitchingTest implements InitializingBean, MockSnmpDataProviderAware {
+public class DragonWaveNodeSwitchingTest extends ProvisioningTestCase implements InitializingBean, MockSnmpDataProviderAware {
 
     @Autowired
     private MockNodeDao m_nodeDao;
@@ -136,7 +135,6 @@ public class DragonWaveNodeSwitchingTest implements InitializingBean, MockSnmpDa
         final MockForeignSourceRepository mfsr = new MockForeignSourceRepository();
         mfsr.putDefaultForeignSource(fs);
         m_provisioner.getProvisionService().setForeignSourceRepository(mfsr);
-        m_provisioner.setScheduledExecutor(Executors.newSingleThreadScheduledExecutor());
         m_provisioner.start();
     }
 
@@ -144,13 +142,14 @@ public class DragonWaveNodeSwitchingTest implements InitializingBean, MockSnmpDa
     public void tearDown() throws Exception {
         m_eventSubscriber.getEventAnticipator().reset();
         m_populator.resetDatabase();
-        m_provisioner.waitFor();
+        waitForEverything();
     }
 
     public void runScan(final NodeScan scan) throws InterruptedException, ExecutionException {
         final Task t = scan.createTask();
         t.schedule();
         t.waitFor();
+        waitForEverything();
     }
 
     @Test
@@ -170,7 +169,6 @@ public class DragonWaveNodeSwitchingTest implements InitializingBean, MockSnmpDa
         anticipator.anticipateEvent(new EventBuilder(EventConstants.PROVISION_SCAN_COMPLETE_UEI, "Provisiond").setNodeid(nextNodeId).getEvent());
 
         importResource("classpath:/dw/import/dw_test_import.xml");
-
         anticipator.verifyAnticipated(200000, 0, 0, 0, 0);
 
         final OnmsNode onmsNode = m_nodeDao.findByForeignId("dw", "arthur");
@@ -187,7 +185,6 @@ public class DragonWaveNodeSwitchingTest implements InitializingBean, MockSnmpDa
         anticipator.anticipateEvent(new EventBuilder(EventConstants.PROVISION_SCAN_COMPLETE_UEI, "Provisiond").setNodeid(nextNodeId).getEvent());
 
         importResource("classpath:/dw/import/dw_test_import.xml");
-
         anticipator.verifyAnticipated(200000, 0, 0, 0, 0);
 
         anticipator.reset();
@@ -196,7 +193,6 @@ public class DragonWaveNodeSwitchingTest implements InitializingBean, MockSnmpDa
 
         final NodeScan scan2 = m_provisioner.createNodeScan(nextNodeId, onmsNode.getForeignSource(), onmsNode.getForeignId());
         runScan(scan2);
-
         m_nodeDao.flush();
         anticipator.verifyAnticipated(200000, 0, 0, 0, 0);
 
@@ -224,18 +220,15 @@ public class DragonWaveNodeSwitchingTest implements InitializingBean, MockSnmpDa
         anticipator.anticipateEvent(new EventBuilder(EventConstants.PROVISION_SCAN_COMPLETE_UEI, "Provisiond").setNodeid(nextNodeId).getEvent());
 
         importResource("classpath:/dw/import/dw_test_import.xml");
-
         anticipator.verifyAnticipated(200000, 0, 0, 0, 0);
 
         final OnmsNode onmsNode = m_nodeDao.findAll().get(0);
-        String sysObjectId = onmsNode.getSysObjectId();
-
-        assertEquals(".1.3.6.1.4.1.7262.1", sysObjectId);
-        
+        assertEquals(".1.3.6.1.4.1.7262.1", onmsNode.getSysObjectId());
     }
 
     private void importResource(final String location) throws Exception {
         m_provisioner.importModelFromResource(m_resourceLoader.getResource(location), true);
+        waitForEverything();
     }
 
     @Override

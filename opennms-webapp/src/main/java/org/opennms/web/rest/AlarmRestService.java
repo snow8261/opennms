@@ -49,7 +49,7 @@ import org.opennms.netmgt.model.AckAction;
 import org.opennms.netmgt.model.OnmsAcknowledgment;
 import org.opennms.netmgt.model.OnmsAlarm;
 import org.opennms.netmgt.model.OnmsAlarmCollection;
-import org.opennms.web.springframework.security.Authentication;
+import org.opennms.web.api.Authentication;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
@@ -92,7 +92,7 @@ public class AlarmRestService extends AlarmRestServiceBase {
     final String alarmId) {
         readLock();
         try {
-            return m_alarmDao.get(new Integer(alarmId));
+            return m_alarmDao.get(Integer.valueOf(alarmId));
         } finally {
             readUnlock();
         }

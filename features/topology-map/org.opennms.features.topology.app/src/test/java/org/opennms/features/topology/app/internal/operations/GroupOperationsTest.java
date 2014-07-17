@@ -52,6 +52,7 @@ import org.opennms.core.test.MockLogAppender;
 import org.opennms.features.topology.api.GraphContainer;
 import org.opennms.features.topology.api.OperationContext;
 import org.opennms.features.topology.api.SelectionManager;
+import org.opennms.features.topology.api.topo.Criteria;
 import org.opennms.features.topology.api.topo.Vertex;
 import org.opennms.features.topology.api.topo.VertexRef;
 import org.opennms.features.topology.plugins.topo.simple.SimpleGraphProvider;
@@ -160,6 +161,7 @@ public class GroupOperationsTest {
 		EasyMock.expect(graphContainer.getSelectionManager()).andReturn(selectionManager).anyTimes();
 		graphContainer.redoLayout();
 		EasyMock.expectLastCall().anyTimes();
+		EasyMock.expect(graphContainer.getCriteria()).andReturn(new Criteria[0]).anyTimes();
 
 		EasyMock.replay(graphContainer);
 		EasyMock.replay(selectionManager);
@@ -623,7 +625,7 @@ public class GroupOperationsTest {
 				Component component = itr.next();
 				try {
 					Form form = (Form)component;
-					Field field = form.getField("Group Label");
+					Field<String> field = form.getField("Group Label");
 					field.setValue("My New Awesome Group");
 					// Make sure that the value was set
 					assertEquals("My New Awesome Group", field.getValue());

@@ -43,10 +43,7 @@ import java.util.Set;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.slf4j.MDC;
-import org.opennms.core.logging.Logging;
 import org.opennms.core.utils.InetAddressUtils;
-
 import org.opennms.core.utils.WebSecurityUtils;
 import org.opennms.netmgt.config.CategoryFactory;
 import org.opennms.netmgt.config.categories.CatFactory;
@@ -59,7 +56,6 @@ import org.opennms.web.map.view.VMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.servlet.ModelAndView;
-import org.springframework.web.servlet.mvc.AbstractController;
 
 
 /**
@@ -72,7 +68,7 @@ import org.springframework.web.servlet.mvc.AbstractController;
  * @version $Id: $
  * @since 1.8.1
  */
-public class AddNodesController extends AbstractController {
+public class AddNodesController extends MapsLoggingController {
 	
 	private static final Logger LOG = LoggerFactory.getLogger(AddNodesController.class);
 
@@ -100,8 +96,7 @@ public class AddNodesController extends AbstractController {
 
 	/** {@inheritDoc} */
         @Override
-	public ModelAndView handleRequest(HttpServletRequest request, HttpServletResponse response) throws IOException {
-                Logging.putPrefix(MapsConstants.LOG4J_CATEGORY);
+	protected ModelAndView handleRequestInternal(HttpServletRequest request, HttpServletResponse response) throws IOException {
 		
 		String action = request.getParameter("action");
 		String elems = request.getParameter("elems");
@@ -119,7 +114,7 @@ public class AddNodesController extends AbstractController {
 				String[] snodeids = elems.split(",");
 				nodeids = new Integer[snodeids.length];
 				for (int i = 0; i<snodeids.length;i++) {
-					nodeids[i] = new Integer(snodeids[i]);
+					nodeids[i] = Integer.valueOf(snodeids[i]);
 				}
 			}
 			
@@ -173,7 +168,7 @@ public class AddNodesController extends AbstractController {
 				LOG.debug("Adding nodes with neighbor of:{}", elems);
 				actionfound = true;
 				Set<Integer> linkednodeids = NetworkElementFactory.getInstance(getServletContext()).getLinkedNodeIdOnNode(WebSecurityUtils.safeParseInt(elems));
-				linkednodeids.add(new Integer(elems));
+				linkednodeids.add(Integer.valueOf(elems));
 				nodeids = linkednodeids.toArray(new Integer[linkednodeids.size()]);
 			} 
 			
@@ -212,11 +207,6 @@ public class AddNodesController extends AbstractController {
 
 		return null;
 	}
-
-    @Override
-    protected ModelAndView handleRequestInternal(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        return handleRequest(request, response);
-    }
 
 
 }

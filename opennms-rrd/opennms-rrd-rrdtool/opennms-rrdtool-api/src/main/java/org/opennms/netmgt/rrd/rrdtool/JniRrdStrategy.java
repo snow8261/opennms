@@ -52,7 +52,7 @@ import org.springframework.util.FileCopyUtils;
 
 /**
  * Provides an rrdtool based implementation of RrdStrategy. It uses the existing
- * JNI based single-threaded interface to write the rrdtool compatibile RRD
+ * JNI based single-threaded interface to write the rrdtool compatible RRD
  * files.
  *
  * The JNI interface takes command-like arguments and doesn't provide open files
@@ -67,15 +67,15 @@ import org.springframework.util.FileCopyUtils;
 public class JniRrdStrategy implements RrdStrategy<JniRrdStrategy.CreateCommand ,StringBuffer> {
     private static final Logger LOG = LoggerFactory.getLogger(JniRrdStrategy.class);
 	
-	private final static String IGNORABLE_LIBART_WARNING_STRING = "*** attempt to put segment in horiz list twice";
-	private final static String IGNORABLE_LIBART_WARNING_REGEX = "\\*\\*\\* attempt to put segment in horiz list twice\r?\n?";
+	private static final String IGNORABLE_LIBART_WARNING_STRING = "*** attempt to put segment in horiz list twice";
+	private static final String IGNORABLE_LIBART_WARNING_REGEX = "\\*\\*\\* attempt to put segment in horiz list twice\r?\n?";
 
     private Properties m_configurationProperties;
     
     public static class CreateCommand {
     	
+    	private static final String OPERATION = "create";
     	String filename;
-    	final String operation = "create";
     	String parameter;
     	
 		public CreateCommand(String filename, String parameter) {
@@ -86,7 +86,7 @@ public class JniRrdStrategy implements RrdStrategy<JniRrdStrategy.CreateCommand 
 		
             @Override
 		public String toString() {
-			return operation + " " + filename + " " + parameter;
+			return OPERATION + " " + filename + " " + parameter;
 		}
 		
     }
@@ -127,7 +127,9 @@ public class JniRrdStrategy implements RrdStrategy<JniRrdStrategy.CreateCommand 
         @Override
     public CreateCommand createDefinition(String creator, String directory, String rrdName, int step, List<RrdDataSource> dataSources, List<String> rraList) throws Exception {
         File f = new File(directory);
-        f.mkdirs();
+        if(!f.mkdirs()) {
+        	LOG.warn("Could not make directory: {}", f.getPath());
+        }
 
         String fileName = directory + File.separator + rrdName + RrdUtils.getExtension();
         
@@ -180,10 +182,11 @@ public class JniRrdStrategy implements RrdStrategy<JniRrdStrategy.CreateCommand 
         String filenameWithoutExtension = createCommand.filename.replace(RrdUtils.getExtension(), "");
         int lastIndexOfSeparator = filenameWithoutExtension.lastIndexOf(File.separator);
         
-		RrdUtils.createMetaDataFile(
-				filenameWithoutExtension.substring(0, lastIndexOfSeparator),
-				filenameWithoutExtension.substring(lastIndexOfSeparator),
-				attributeMappings);
+        RrdUtils.createMetaDataFile(
+            filenameWithoutExtension.substring(0, lastIndexOfSeparator),
+            filenameWithoutExtension.substring(lastIndexOfSeparator),
+            attributeMappings
+        );
     }
 
     /**
@@ -520,13 +523,16 @@ public class JniRrdStrategy implements RrdStrategy<JniRrdStrategy.CreateCommand 
             BufferedReader reader = new BufferedReader(new InputStreamReader(is));
             
             try {
-                String s[] = reader.readLine().split("x");
+                String line = null;
+                if ((line = reader.readLine()) == null) {
+                    throw new IOException("No output from the createGraph() command");
+                }
+                String[] s = line.split("x");
                 width = Integer.parseInt(s[0]);
                 height = Integer.parseInt(s[1]);
                 
                 List<String> printLinesList = new ArrayList<String>();
                 
-                String line = null;
                 while ((line = reader.readLine()) != null) {
                     printLinesList.add(line);
                 }
@@ -543,12 +549,13 @@ public class JniRrdStrategy implements RrdStrategy<JniRrdStrategy.CreateCommand 
         } catch (Throwable e) {
             throw new RrdException("Can't execute command " + command, e);
         } finally {
-            pngFile.delete();
+            if (!pngFile.delete()) {
+            	LOG.warn("Could not delete file: {}", pngFile.getPath());
+            }
         }
 
         // Creating Graph Details
-        RrdGraphDetails details = new JniGraphDetails(width, height, printLines, pngStream);
-        return details;
+        return new JniGraphDetails(width, height, printLines, pngStream);
     }
 
     /** {@inheritDoc} */

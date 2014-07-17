@@ -39,6 +39,7 @@ import java.util.concurrent.Executors;
 import org.exolab.castor.xml.MarshalException;
 import org.exolab.castor.xml.ValidationException;
 import org.opennms.core.concurrent.LogPreservingThreadFactory;
+import org.opennms.core.logging.Logging;
 import org.opennms.netmgt.config.RTCConfigFactory;
 import org.opennms.netmgt.daemon.AbstractServiceDaemon;
 import org.opennms.netmgt.rtc.datablock.RTCCategory;
@@ -75,12 +76,10 @@ import org.slf4j.LoggerFactory;
  *
  * @author <A HREF="mailto:sowmya@opennms.org">Sowmya Kumaraswamy </A>
  * @author <A HREF="http://www.opennms.org">OpenNMS.org </A>
- * @author <A HREF="mailto:sowmya@opennms.org">Sowmya Kumaraswamy </A>
- * @author <A HREF="http://www.opennms.org">OpenNMS.org </A>
+ *
  * @see org.opennms.netmgt.rtc.RTCConstants
  * @see org.opennms.netmgt.rtc.DataSender
  * @see org.opennms.netmgt.rtc.DataManager
- * @version $Id: $
  */
 public final class RTCManager extends AbstractServiceDaemon {
     
@@ -174,7 +173,7 @@ public final class RTCManager extends AbstractServiceDaemon {
     private BroadcastEventProcessor m_eventReceiver;
 
     /**
-     * The RunnableConsumerThreadPool that runs updaters that interpret and
+     * The {@link ExecutorService} that runs updaters that interpret and
      * update the data
      */
     private ExecutorService m_updaterPool;
@@ -310,6 +309,7 @@ public final class RTCManager extends AbstractServiceDaemon {
      */
     public RTCManager() {
     	super("rtc");
+        Logging.putPrefix("rtc");
     }
 
     /**
@@ -420,7 +420,7 @@ public final class RTCManager extends AbstractServiceDaemon {
      * <p>onInit</p>
      */
     @Override
-    protected void onInit() {
+    protected synchronized void onInit() {
 
         // load the rtc configuration
         RTCConfigFactory rFactory = null;

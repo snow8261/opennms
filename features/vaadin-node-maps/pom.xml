@@ -6,12 +6,12 @@
 		<relativePath>../topology-map/poms/compiled/</relativePath>
 		<groupId>org.opennms.features.topology.build</groupId>
 		<artifactId>compiled-bundle-settings</artifactId>
-		<version>1.13.0-SNAPSHOT</version>
+		<version>1.13.4-SNAPSHOT</version>
 	</parent>
 	<groupId>org.opennms.features</groupId>
 	<artifactId>vaadin-node-maps</artifactId>
 	<packaging>bundle</packaging>
-	<name>OpenNMS Node Maps</name>
+	<name>OpenNMS Features Node Maps</name>
 	<description>
     OpenNMS Vaadin UI for displaying nodes on geographical maps using assets records.
   </description>
@@ -56,16 +56,13 @@
                 <artifactId>vaadin-maven-plugin</artifactId>
                 <version>${vaadin.plugin.version}</version>
                 <configuration>
-                    <extraJvmArgs>-Xmx512M -Xss1024k</extraJvmArgs>
-                    <webappDirectory>${basedir}/target/gwt/VAADIN/widgetsets
-                    </webappDirectory>
-                    <hostedWebapp>${basedir}/target/gwt/VAADIN/widgetsets
-                    </hostedWebapp>
+                    <extraJvmArgs>-Xmx1g -Xss1024k</extraJvmArgs>
+                    <webappDirectory>${basedir}/target/gwt/VAADIN/widgetsets</webappDirectory>
+                    <hostedWebapp>${basedir}/target/gwt/VAADIN/widgetsets</hostedWebapp>
                     <noServer>true</noServer>
-                    <!-- Remove draftCompile when project is ready -->
-                    <draftCompile>true</draftCompile>
-                    <compileReport>true</compileReport>
-                    <style>OBF</style>
+                    <draftCompile>false</draftCompile>
+                    <compileReport>false</compileReport>
+                    <style>DETAILED</style>
                     <strict>true</strict>
                     <runTarget>http://localhost:8980/opennms/node-maps</runTarget>
                     <gwtSdkFirstInClasspath>true</gwtSdkFirstInClasspath>
@@ -84,6 +81,18 @@
                         </goals>
                     </execution>
                 </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>com.google.gwt</groupId>
+                        <artifactId>gwt-dev</artifactId>
+                        <version>${gwtVersion}</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>com.google.gwt</groupId>
+                        <artifactId>gwt-user</artifactId>
+                        <version>${gwtVersion}</version>
+                    </dependency>
+                </dependencies>
             </plugin>
 
 			<plugin>
@@ -107,37 +116,35 @@
 	<repositories>
 		<repository>
 			<id>vaadin-snapshots</id>
-			<url>http://oss.sonatype.org/content/repositories/vaadin-snapshots/</url>
-			<releases>
-				<enabled>false</enabled>
-			</releases>
-			<snapshots>
-			</snapshots>
+			<releases><enabled>false</enabled></releases>
+			<snapshots><enabled>true</enabled></snapshots>
+			<url>http://maven.opennms.org/content/groups/vaadin-snapshot/</url>
 		</repository>
 		<repository>
 			<id>vaadin-addons</id>
-			<url>http://maven.vaadin.com/vaadin-addons</url>
+			<url>http://maven.opennms.org/content/groups/vaadin.com-addons/</url>
+		</repository>
+		<repository>
+			<snapshots><enabled>false</enabled></snapshots>
+			<releases><enabled>true</enabled></releases>
+			<id>opennms-repo</id>
+			<name>OpenNMS Repository</name>
+			<url>http://maven.opennms.org/content/groups/opennms.org-release</url>
 		</repository>
 	</repositories>
 
 	<pluginRepositories>
 		<pluginRepository>
 			<id>codehaus-snapshots</id>
-			<url>http://nexus.codehaus.org/snapshots</url>
-			<snapshots>
-			</snapshots>
-			<releases>
-				<enabled>false</enabled>
-			</releases>
+			<snapshots><enabled>true</enabled></snapshots>
+			<releases><enabled>false</enabled></releases>
+			<url>http://maven.opennms.org/content/groups/codehaus.org-snapshot/</url>
 		</pluginRepository>
 		<pluginRepository>
 			<id>vaadin-snapshots</id>
-			<url>http://oss.sonatype.org/content/repositories/vaadin-snapshots/</url>
-			<snapshots>
-			</snapshots>
-			<releases>
-				<enabled>false</enabled>
-			</releases>
+			<snapshots><enabled>true</enabled></snapshots>
+			<releases><enabled>false</enabled></releases>
+			<url>http://maven.opennms.org/content/groups/vaadin-snapshot/</url>
 		</pluginRepository>
 	</pluginRepositories>
 
@@ -154,6 +161,12 @@
 			<artifactId>org.osgi.compendium</artifactId>
 			<scope>provided</scope>
 		</dependency>
+		<dependency>
+			<groupId>org.opennms.osgi</groupId>
+			<artifactId>opennms-osgi-core</artifactId>
+			<version>${project.version}</version>
+			<scope>provided</scope>
+		</dependency>
 
 		<!-- Vaadin Dependencies -->
 
@@ -168,8 +181,21 @@
 			<type>pom</type>
 			<scope>provided</scope>
 		</dependency>
+
 		<!-- Node Maps Dependencies -->
 
+		<dependency>
+			<groupId>org.opennms.features.topology</groupId>
+			<artifactId>api</artifactId>
+			<version>${project.version}</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.opennms.features.topology.plugins</groupId>
+			<artifactId>browsers</artifactId>
+			<version>${project.version}</version>
+			<scope>provided</scope>
+		</dependency>
 		<dependency>
 			<groupId>org.opennms.features.geocoder</groupId>
 			<artifactId>org.opennms.features.geocoder.api</artifactId>
@@ -177,7 +203,7 @@
 		<dependency>
 			<groupId>org.discotools.gwt.leaflet</groupId>
 			<artifactId>gwtl-core</artifactId>
-			<version>0.3-ONMS-20130305-1</version>
+			<version>0.3-ONMS-20131014-1</version>
 			<optional>true</optional>
 			<scope>provided</scope>
 		</dependency>
@@ -233,19 +259,25 @@
 		<dependency>
 			<groupId>org.powermock</groupId>
 			<artifactId>powermock-module-junit4</artifactId>
-			<version>1.5</version>
+			<version>${powermockVersion}</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.powermock</groupId>
 			<artifactId>powermock-api-easymock</artifactId>
-			<version>1.5</version>
+			<version>${powermockVersion}</version>
+			<scope>test</scope>
+		</dependency>  
+		<dependency>
+			<groupId>org.powermock</groupId>
+			<artifactId>powermock-api-mockito</artifactId>
+			<version>${powermockVersion}</version>
 			<scope>test</scope>
 		</dependency>  
 		<dependency>
 		    <groupId>com.googlecode.gwt-test-utils</groupId>
 		    <artifactId>gwt-test-utils</artifactId>
-		    <version>0.44</version>
+		    <version>0.47</version>
 		    <scope>test</scope>
 		</dependency>
 	</dependencies>

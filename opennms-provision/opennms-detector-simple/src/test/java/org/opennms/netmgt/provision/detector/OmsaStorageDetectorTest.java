@@ -36,10 +36,10 @@ import java.net.UnknownHostException;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.opennms.core.spring.BeanUtils;
 import org.opennms.core.test.MockLogAppender;
 import org.opennms.core.test.OpenNMSJUnit4ClassRunner;
 import org.opennms.core.test.snmp.annotations.JUnitSnmpAgent;
-import org.opennms.core.utils.BeanUtils;
 import org.opennms.core.utils.InetAddressUtils;
 import org.opennms.netmgt.provision.detector.snmp.OmsaStorageDetector;
 import org.springframework.beans.factory.InitializingBean;
@@ -53,7 +53,7 @@ import org.springframework.test.context.ContextConfiguration;
 })
 @JUnitSnmpAgent(host=OmsaStorageDetectorTest.TEST_IP_ADDRESS, resource="classpath:org/opennms/netmgt/provision/detector/omsaStorageDetector.properties")
 public class OmsaStorageDetectorTest implements InitializingBean {
-    static final String TEST_IP_ADDRESS = "192.168.0.1";
+    static final String TEST_IP_ADDRESS = "192.0.2.1";
 
     @Autowired
     private OmsaStorageDetector m_detector;
@@ -68,7 +68,7 @@ public class OmsaStorageDetectorTest implements InitializingBean {
         MockLogAppender.setupLogging();
 
         m_detector.setRetries(2);
-        m_detector.setTimeout(500);
+        m_detector.setTimeout(5000);
         m_detector.setVirtualDiskNumber("1");
     }
 

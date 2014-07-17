@@ -34,7 +34,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.opennms.core.utils.WebSecurityUtils;
-import org.opennms.web.springframework.security.Authentication;
+import org.opennms.web.api.Authentication;
 import org.opennms.web.svclayer.inventory.InventoryService;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.Controller;
@@ -85,8 +85,7 @@ public class AdminRancidController implements Controller {
         } else {
             model   = m_inventoryService.getRancidNodeWithCLogin(nodeid,request.isUserInRole(Authentication.ROLE_ADMIN));            
         }
-        ModelAndView modelAndView = new ModelAndView("admin/rancid/rancidAdmin","model",model);
-        return modelAndView;
+        return new ModelAndView("admin/rancid/rancidAdmin","model",model);
     }
 
 }

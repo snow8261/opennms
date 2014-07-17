@@ -216,7 +216,9 @@ public class DNSInputStream extends ByteArrayInputStream {
         //
         int offset = readShort() & 0x3fff;
         DNSInputStream dnsIn = new DNSInputStream(buf, offset, buf.length - offset);
-        return dnsIn.readDomainName();
+        String retval = dnsIn.readDomainName();
+        dnsIn.close();
+        return retval;
     }
 
     /**
@@ -250,8 +252,7 @@ public class DNSInputStream extends ByteArrayInputStream {
             // Create the route record and return it to
             // the caller.
             //
-            DNSAddressRR rr = new DNSAddressRR(rrName, rrType, rrClass, rrTTL, rrDNSIn);
-            return rr;
+            return new DNSAddressRR(rrName, rrType, rrClass, rrTTL, rrDNSIn);
         } catch (Throwable ex) {
             throw new IOException("Unknown DNSAddressRR (type " + " (" + rrType + "))" + "\nOriginating Exception: " + ex.getMessage());
         }

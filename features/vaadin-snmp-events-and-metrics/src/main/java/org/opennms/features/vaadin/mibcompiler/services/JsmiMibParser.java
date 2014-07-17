@@ -52,9 +52,6 @@ import org.jsmiparser.smi.SmiPrimitiveType;
 import org.jsmiparser.smi.SmiRow;
 import org.jsmiparser.smi.SmiTrapType;
 import org.jsmiparser.smi.SmiVariable;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.opennms.features.namecutter.NameCutter;
 import org.opennms.features.vaadin.mibcompiler.api.MibParser;
 import org.opennms.netmgt.config.datacollection.DatacollectionGroup;
@@ -73,6 +70,8 @@ import org.opennms.netmgt.xml.eventconf.Logmsg;
 import org.opennms.netmgt.xml.eventconf.Mask;
 import org.opennms.netmgt.xml.eventconf.Maskelement;
 import org.opennms.netmgt.xml.eventconf.Varbindsdecode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * JSMIParser implementation of the interface MibParser.
@@ -81,6 +80,8 @@ import org.opennms.netmgt.xml.eventconf.Varbindsdecode;
  */
 @SuppressWarnings("serial")
 public class JsmiMibParser implements MibParser, Serializable {
+
+    /** The Constant LOG. */
     private static final Logger LOG = LoggerFactory.getLogger(JsmiMibParser.class);
 
     /** The Constant MIB_SUFFIXES. */
@@ -249,7 +250,7 @@ public class JsmiMibParser implements MibParser, Serializable {
                     mibObj.setType(typeName);
                     group.addMibObj(mibObj);
                     if (typeName.equals("string") && resourceType != null) {
-                        for (ResourceType rs : dcGroup.getResourceTypeCollection()) {
+                        for (ResourceType rs : dcGroup.getResourceTypes()) {
                             if (rs.getName().equals(resourceType) && rs.getResourceLabel().equals("${index}")) {
                                 rs.setResourceLabel("${" + v.getId() + "} (${index})");
                             }
@@ -366,7 +367,7 @@ public class JsmiMibParser implements MibParser, Serializable {
      * Adds the dependency to the queue.
      *
      * @param queue the queue
-     * @param mibDirectoryFiles
+     * @param mibDirectoryFiles the mib directory files
      * @return true, if successful
      */
     private boolean addDependencyToQueue(final List<URL> queue, final Map<String, File> mibDirectoryFiles) {
@@ -446,7 +447,7 @@ public class JsmiMibParser implements MibParser, Serializable {
      * @return the group
      */
     protected Group getGroup(DatacollectionGroup data, String groupName, String resourceType) {
-        for (Group group : data.getGroupCollection()) {
+        for (Group group : data.getGroups()) {
             if (group.getName().equals(groupName))
                 return group;
         }
@@ -662,7 +663,7 @@ public class JsmiMibParser implements MibParser, Serializable {
      */
     private String getTrapEnterprise(Notification trap) {
         String trapOid = getMatcherForOid(getTrapOid(trap)).group(1);
-        
+
         /* RFC3584 sec 3.2 (1) bullet 2 sub-bullet 1 states:
          * 
          * "If the next-to-last sub-identifier of the snmpTrapOID value
@@ -672,7 +673,7 @@ public class JsmiMibParser implements MibParser, Serializable {
          * Issue SPC-592 boils down to the fact that we were not doing the above.
          * 
          */
-        
+
         if (trapOid.endsWith(".0")) {
             trapOid = trapOid.substring(0, trapOid.length() - 2);
         }

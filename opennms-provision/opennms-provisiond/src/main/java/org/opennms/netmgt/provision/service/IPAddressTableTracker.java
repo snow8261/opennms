@@ -86,7 +86,7 @@ public class IPAddressTableTracker extends TableTracker {
         IP_ADDRESS_TYPE_INDEX
     };
     
-    class IPAddressRow extends SnmpRowResult {
+    static class IPAddressRow extends SnmpRowResult {
 
         public IPAddressRow(final int columnCount, final SnmpInstId instance) {
             super(columnCount, instance);
@@ -208,15 +208,20 @@ public class IPAddressTableTracker extends TableTracker {
                 return null;
             }
 
-            final OnmsSnmpInterface snmpIface = new OnmsSnmpInterface(null, ifIndex);
-            snmpIface.setNetMask(netMask);
-            snmpIface.setCollectionEnabled(true);
+            final InetAddress inetAddress = InetAddressUtils.addr(ipAddr);
+            final OnmsIpInterface iface = new OnmsIpInterface(inetAddress, null);
 
-            final OnmsIpInterface iface = new OnmsIpInterface(ipAddr, null);
-            iface.setSnmpInterface(snmpIface);
+            if (ifIndex != null) {
+                final OnmsSnmpInterface snmpIface = new OnmsSnmpInterface(null, ifIndex);
+                snmpIface.setNetMask(netMask);
+                snmpIface.setCollectionEnabled(true);
+                iface.setSnmpInterface(snmpIface);
+                iface.setIfIndex(ifIndex);
+            }
 
-            iface.setIfIndex(ifIndex);
-            final String hostName = normalize(ipAddr);
+            String hostName = null;
+            if (inetAddress != null) hostName = inetAddress.getHostName();
+            if (hostName == null) hostName = normalize(ipAddr);
             LOG.debug("setIpHostName: {}", hostName);
             iface.setIpHostName(hostName == null? ipAddr : hostName);
 

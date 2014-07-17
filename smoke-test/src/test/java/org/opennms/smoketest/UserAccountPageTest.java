@@ -28,9 +28,11 @@
 
 package org.opennms.smoketest;
 
+import org.junit.FixMethodOrder;
 import org.junit.Test;
+import org.junit.runners.MethodSorters;
 
-
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class UserAccountPageTest extends OpenNMSSeleniumTestCase {
     @Override
     public void setUp() throws Exception {
@@ -41,24 +43,23 @@ public class UserAccountPageTest extends OpenNMSSeleniumTestCase {
     }
     
     @Test
-    public void testAllTextIsPresent() throws Exception {
-        assertTrue(selenium.isTextPresent("User Account Self-Service"));
-        assertTrue(selenium.isTextPresent("Account Self-Service Options"));
-        assertTrue(selenium.isTextPresent("require further"));
+    public void a_testAllTextIsPresent() throws Exception {
+        waitForText("User Account Self-Service");
+        waitForText("Account Self-Service Options");
+        waitForText("require further");
     }
 
     @Test 
-    public void testAllLinksArePresent() {
-        assertTrue(selenium.isElementPresent("link=Change Password"));
+    public void b_testAllLinksArePresent() throws InterruptedException {
+        waitForElement("link=Change Password");
     }
 
     @Test
-    public void testAllLinks() {
-        selenium.click("link=Change Password");
-        waitForPageToLoad();
-        assertTrue(selenium.isTextPresent("Please enter the old and new passwords and confirm."));
-        assertTrue(selenium.isTextPresent("Current Password"));
-        assertTrue(selenium.isElementPresent("link=Cancel"));
+    public void c_testAllLinks() throws InterruptedException {
+        clickAndWait("link=Change Password");
+        waitForText("Please enter the old and new passwords and confirm.");
+        waitForText("Current Password");
+        waitForElement("link=Cancel");
     }
 
 }

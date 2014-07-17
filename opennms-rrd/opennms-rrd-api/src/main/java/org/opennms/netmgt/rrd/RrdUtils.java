@@ -28,13 +28,17 @@
 
 package org.opennms.netmgt.rrd;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
+import java.util.Properties;
 
+import org.opennms.core.utils.PropertiesCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanFactory;
@@ -66,13 +70,33 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
  */
 public abstract class RrdUtils {
     private static final Logger LOG = LoggerFactory.getLogger(RrdUtils.class);
+    private static PropertiesCache s_cache = new PropertiesCache();
 
     private static RrdStrategy<?, ?> m_rrdStrategy = null;
 
-    private static BeanFactory m_context = new ClassPathXmlApplicationContext(new String[]{
+    /**
+     * Use the {@link ClassPathXmlApplicationContext#ClassPathXmlApplicationContext(String[], Class)}
+     * constructor so that we make sure to load the XML resources from the same classloader as the
+     * class itself so that classloading works under OSGi.
+     */
+    private static final BeanFactory m_context;
+
+    static {
+        ClassLoader old = null;
+        try {
+            old = Thread.currentThread().getContextClassLoader();
+            Thread.currentThread().setContextClassLoader(RrdUtils.class.getClassLoader());
+            m_context = new ClassPathXmlApplicationContext(new String[]{
                 // Default RRD configuration context
-                "org/opennms/netmgt/rrd/rrd-configuration.xml"
-            });
+                //
+                // Use an absolute path, otherwise Spring will try to resolve the resource relative
+                // to the RrdUtils class package.
+                "/org/opennms/netmgt/rrd/rrd-configuration.xml"
+            }, RrdUtils.class);
+        } finally {
+            Thread.currentThread().setContextClassLoader(old);
+        }
+    }
 
     /**
      * Writes a file with the attribute to rrd track mapping next to the rrd file.
@@ -85,43 +109,43 @@ public abstract class RrdUtils {
      * @param attributeMappings a {@link Map<String, String>} that represents
      * the mapping of attributeId to rrd track names
      */
-    public static void createMetaDataFile(String directory, String rrdName, Map<String, String> attributeMappings) {
-        if (attributeMappings != null) {
-            Writer fileWriter = null;
-            String mapping = "";
-            StringBuilder sb = new StringBuilder(mapping);
-            for (Entry<String, String> mappingEntry : attributeMappings.entrySet()) {
-                sb.append(mappingEntry.getKey());
-                sb.append("=");
-                sb.append(mappingEntry.getValue());
-                sb.append("\n");
+    public static void createMetaDataFile(final String directory, final String rrdName, final Map<String, String> attributeMappings) {
+        final File metaFile = new File(directory + File.separator + rrdName + ".meta");
+
+        try {
+            if (metaFile.exists()) {
+                s_cache.updateProperties(metaFile, attributeMappings);
+            } else {
+                s_cache.saveProperties(metaFile, attributeMappings);
             }
-            String rrdMetaFileName = directory + File.separator + rrdName + ".meta";
-            try {
-                fileWriter = new FileWriter(rrdMetaFileName);
-                fileWriter.write(sb.toString());
-                LOG.info("createRRD: creating META file {}", rrdMetaFileName);
-            } catch (IOException e) {
-                LOG.error("createMetaDataFile: An error occured creating metadatafile: {}", rrdMetaFileName, e);
-            } finally {
-                if (fileWriter != null) {
-                    try {
-                        fileWriter.close();
-                    } catch (IOException e) {
-                        LOG.error("createMetaDataFile: An error occured closing fileWriter", e);
-                    }
-                }
-            }
+        } catch (final IOException e) {
+            LOG.error("Failed to save metadata file {}", metaFile, e);
         }
     }
 
-    public static enum StrategyName {
+    public static Map<String,String> readMetaDataFile(final String directory, final String rrdName) {
+        final File metaFile = new File(directory + File.separator + rrdName + ".meta");
 
+        try {
+            final Properties props = s_cache.getProperties(metaFile);
+            final Map<String,String> ret = new HashMap<String,String>();
+            for (final Map.Entry<Object,Object> entry : props.entrySet()) {
+                final Object value = entry.getValue();
+                ret.put(entry.getKey().toString(), value == null? null : value.toString());
+            }
+            return ret;
+        } catch (final IOException e) {
+            LOG.warn("Failed to retrieve metadata from {}", metaFile, e);
+        }
+
+        return Collections.emptyMap();
+    }
+
+    public static enum StrategyName {
         basicRrdStrategy,
         queuingRrdStrategy,
         tcpAndBasicRrdStrategy,
         tcpAndQueuingRrdStrategy
-
     }
 
     /**
@@ -227,7 +251,7 @@ public abstract class RrdUtils {
         return createRRD(creator, directory, dsName, step, Collections.singletonList(new RrdDataSource(dsName, dsType, dsHeartbeat, dsMin, dsMax)), rraList, null);
     }
 
-/**
+    /**
      * <p>createRRD</p>
      *
      * @param creator a {@link java.lang.String} object.
@@ -242,7 +266,7 @@ public abstract class RrdUtils {
     public static boolean createRRD(String creator, String directory, String rrdName, int step, List<RrdDataSource> dataSources, List<String> rraList) throws RrdException {
         return createRRD(creator, directory, rrdName, step, dataSources, rraList, null);
     }
-    
+
     /**
      * <p>createRRD</p>
      *
@@ -257,8 +281,8 @@ public abstract class RrdUtils {
      * @throws org.opennms.netmgt.rrd.RrdException if any.
      */
     public static boolean createRRD(String creator, String directory, String rrdName, int step, List<RrdDataSource> dataSources, List<String> rraList, Map<String, String> attributeMappings) throws RrdException {
-    	Object def = null;
-    	
+        Object def = null;
+
         try {
             def = getStrategy().createDefinition(creator, directory, rrdName, step, dataSources, rraList);
             // def can be null if the rrd-db exists already, but doesn't have to be (see MultiOutput/QueuingRrdStrategy
@@ -267,8 +291,8 @@ public abstract class RrdUtils {
             return true;
         } catch (Throwable e) {
             String path = directory + File.separator + rrdName + getStrategy().getDefaultFileExtension();
-            LOG.error("createRRD: An error occured creating rrdfile {}", path, e);
-            throw new org.opennms.netmgt.rrd.RrdException("An error occured creating rrdfile " + path + ": " + e, e);
+            LOG.error("createRRD: An error occurred creating rrdfile {}", path, e);
+            throw new org.opennms.netmgt.rrd.RrdException("An error occurred creating rrdfile " + path + ": " + e, e);
         }
     }
 

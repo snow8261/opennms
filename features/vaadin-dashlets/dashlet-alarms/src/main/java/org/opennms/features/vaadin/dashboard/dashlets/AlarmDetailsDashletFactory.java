@@ -29,8 +29,10 @@ package org.opennms.features.vaadin.dashboard.dashlets;
 
 import org.opennms.features.vaadin.dashboard.model.AbstractDashletFactory;
 import org.opennms.features.vaadin.dashboard.model.Dashlet;
+import org.opennms.features.vaadin.dashboard.model.DashletConfigurationWindow;
 import org.opennms.features.vaadin.dashboard.model.DashletSpec;
 import org.opennms.netmgt.dao.api.AlarmDao;
+import org.opennms.netmgt.dao.api.AlarmRepository;
 import org.opennms.netmgt.dao.api.NodeDao;
 
 /**
@@ -48,15 +50,18 @@ public class AlarmDetailsDashletFactory extends AbstractDashletFactory {
      */
     private NodeDao m_nodeDao;
 
+    private AlarmRepository m_alarmRepository;
+
     /**
      * Constructor used for instantiating a new factory.
      *
      * @param alarmDao the {@link AlarmDao} to be used
      * @param nodeDao  the {@link NodeDao} to be used
      */
-    public AlarmDetailsDashletFactory(AlarmDao alarmDao, NodeDao nodeDao) {
+    public AlarmDetailsDashletFactory(AlarmDao alarmDao, NodeDao nodeDao, AlarmRepository alarmRepository) {
         m_alarmDao = alarmDao;
         m_nodeDao = nodeDao;
+        m_alarmRepository = alarmRepository;
     }
 
     /**
@@ -66,7 +71,7 @@ public class AlarmDetailsDashletFactory extends AbstractDashletFactory {
      * @return a new {@link Dashlet} instance
      */
     public Dashlet newDashletInstance(DashletSpec dashletSpec) {
-        return new AlarmDetailsDashlet(getName(), dashletSpec, m_alarmDao, m_nodeDao);
+        return new AlarmDetailsDashlet(getName(), dashletSpec, m_alarmDao, m_nodeDao, m_alarmRepository);
     }
 
     /**
@@ -77,5 +82,16 @@ public class AlarmDetailsDashletFactory extends AbstractDashletFactory {
     @Override
     public String getHelpContentHTML() {
         return "This Dashlet displays a detailed alarm list.";
+    }
+
+    /**
+     * Returns a custom configuration window.
+     *
+     * @param dashletSpec the {@link DashletSpec} to use
+     * @return the configuration window
+     */
+    @Override
+    public DashletConfigurationWindow configurationWindow(DashletSpec dashletSpec) {
+        return new AlarmConfigurationWindow(dashletSpec);
     }
 }

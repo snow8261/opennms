@@ -47,9 +47,9 @@ import java.util.Properties;
 import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
+import org.opennms.core.spring.FileReloadCallback;
+import org.opennms.core.spring.FileReloadContainer;
 import org.opennms.core.utils.BundleLists;
-import org.opennms.core.utils.FileReloadCallback;
-import org.opennms.core.utils.FileReloadContainer;
 import org.opennms.netmgt.dao.api.GraphDao;
 import org.opennms.netmgt.model.AdhocGraphType;
 import org.opennms.netmgt.model.OnmsAttribute;
@@ -280,9 +280,10 @@ public class PropertiesGraphDao implements GraphDao, InitializingBean {
                     return (name.endsWith(".properties"));
                 }
             };
-            File[] propertyFiles = includeDirectory.listFiles(propertyFilesFilter);
+            final File[] propertyFiles = includeDirectory.listFiles(propertyFilesFilter);
+            Arrays.sort(propertyFiles);
 
-            for (File file : propertyFiles) {
+            for (final File file : propertyFiles) {
                 loadIncludedFile(type, file);
             }
         }
@@ -660,7 +661,7 @@ public class PropertiesGraphDao implements GraphDao, InitializingBean {
         }
 
         try {
-            return new Integer(value);
+            return Integer.valueOf(value);
         } catch (NumberFormatException e) {
             throw new DataAccessResourceFailureException(
                                                          "Property value for '"

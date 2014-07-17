@@ -35,15 +35,16 @@ import org.opennms.api.integration.ticketing.PluginException;
 import org.opennms.api.integration.ticketing.Ticket;
 import org.opennms.api.integration.ticketing.Ticket.State;
 import org.opennms.netmgt.dao.api.AlarmDao;
-import org.opennms.netmgt.eventd.EventIpcManagerFactory;
 import org.opennms.netmgt.model.OnmsAlarm;
 import org.opennms.netmgt.model.TroubleTicketState;
 import org.opennms.netmgt.model.events.EventBuilder;
 import org.opennms.netmgt.model.events.EventIpcManager;
+import org.opennms.netmgt.model.events.EventIpcManagerFactory;
 import org.opennms.netmgt.xml.event.Event;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.orm.ObjectRetrievalFailureException;
 import org.springframework.util.Assert;
 
@@ -52,15 +53,14 @@ import org.springframework.util.Assert;
  *
  * @author <a href="mailto:brozow@opennms.org">Mathew Brozowski</a>
  * @author <a href="mailto:david@opennms.org">David Hustace</a>
- * @author <a href="mailto:brozow@opennms.org">Mathew Brozowski</a>
- * @author <a href="mailto:david@opennms.org">David Hustace</a>
- * @version $Id: $
  */
 public class DefaultTicketerServiceLayer implements TicketerServiceLayer, InitializingBean {
 
     private static final Logger LOG = LoggerFactory.getLogger(DefaultTicketerServiceLayer.class);
 
+    @Autowired
     private AlarmDao m_alarmDao;
+
     private Plugin m_ticketerPlugin;
     private EventIpcManager m_eventIpcManager;
 
@@ -88,6 +88,7 @@ public class DefaultTicketerServiceLayer implements TicketerServiceLayer, Initia
      *
      * @param ticketerPlugin a {@link org.opennms.api.integration.ticketing.Plugin} object.
      */
+    @Override
     public void setTicketerPlugin(Plugin ticketerPlugin) {
         m_ticketerPlugin = ticketerPlugin;
     }

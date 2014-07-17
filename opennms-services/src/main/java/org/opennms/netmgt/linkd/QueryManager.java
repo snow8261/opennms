@@ -31,6 +31,8 @@ package org.opennms.netmgt.linkd;
 import java.util.List;
 
 import org.opennms.netmgt.model.OnmsArpInterface.StatusType;
+import org.opennms.netmgt.model.topology.LinkableNode;
+import org.opennms.netmgt.model.topology.LinkableSnmpNode;
 
 /**
  * <p>QueryManager interface.</p>
@@ -94,16 +96,16 @@ public interface QueryManager {
      * @return a {@link java.util.List} object.
      * @throws java.sql.SQLException if any.
      */
-    List<LinkableNode> getSnmpNodeList();
+    List<LinkableSnmpNode> getSnmpNodeList();
 
     /**
      * <p>getSnmpNode</p>
      *
      * @param nodeid a int.
-     * @return a {@link org.opennms.netmgt.linkd.LinkableNode} object.
+     * @return a {@link org.opennms.netmgt.model.topology.LinkableNode} object.
      * @throws java.sql.SQLException if any.
      */
-    LinkableNode getSnmpNode(int nodeid);
+    LinkableSnmpNode getSnmpNode(int nodeid);
 
     /**
      * <p>updateDeletedNodes</p>
@@ -115,9 +117,9 @@ public interface QueryManager {
     /**
      * <p>storeSnmpCollection</p>
      *
-     * @param node a {@link org.opennms.netmgt.linkd.LinkableNode} object.
+     * @param node a {@link org.opennms.netmgt.model.topology.LinkableNode} object.
      * @param snmpColl a {@link org.opennms.netmgt.linkd.SnmpCollection} object.
-     * @return a {@link org.opennms.netmgt.linkd.LinkableNode} object.
+     * @return a {@link org.opennms.netmgt.model.topology.LinkableNode} object.
      * @throws java.sql.SQLException if any.
      */
     LinkableNode storeSnmpCollection(LinkableNode node, SnmpCollection snmpColl);
@@ -150,7 +152,7 @@ public interface QueryManager {
      */
     void updateForInterface(int nodeid, String ipAddr, int ifIndex, StatusType action);
     
-    Linkd getLinkd();
-	void setLinkd(final Linkd linkd);
+    public Linkd getLinkd();
+    public void setLinkd(final Linkd linkd);
 
 }

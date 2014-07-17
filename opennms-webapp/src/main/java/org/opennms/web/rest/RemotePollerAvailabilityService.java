@@ -110,8 +110,7 @@ public class RemotePollerAvailabilityService extends OnmsRestService {
     protected TimeChunker getTimeChunkerFromMidnight() {
         Calendar calendar = Calendar.getInstance();
         Date startTime = new GregorianCalendar(calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH), 0,0,0).getTime();
-        TimeChunker chunker = new TimeChunker(TimeChunker.MINUTE, startTime, new Date(System.currentTimeMillis()));
-        return chunker;
+        return new TimeChunker(TimeChunker.MINUTE, startTime, new Date(System.currentTimeMillis()));
     }
 
 
@@ -204,6 +203,9 @@ public class RemotePollerAvailabilityService extends OnmsRestService {
             MultivaluedMap<String, String> queryParameters = m_uriInfo.getQueryParameters();
             
             OnmsMonitoringLocationDefinition locationDefinition = m_locationMonitorDao.findMonitoringLocationDefinition(location);
+            if (locationDefinition == null) {
+                throw new IllegalArgumentException("Cannot find location definition: " + location);
+            }
             Collection<OnmsLocationMonitor> monitors = m_locationMonitorDao.findByLocationDefinition(locationDefinition);
             
             OnmsLocationAvailDefinitionList availList = getAvailabilityList(createTimeChunker(queryParameters), getSortedApplications(), monitors, null);

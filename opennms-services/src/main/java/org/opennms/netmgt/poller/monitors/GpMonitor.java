@@ -38,12 +38,12 @@ import org.opennms.core.utils.ParameterMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.opennms.core.utils.TimeoutTracker;
-import org.opennms.netmgt.model.PollStatus;
 import org.opennms.netmgt.poller.Distributable;
 import org.opennms.netmgt.poller.DistributionContext;
 import org.opennms.netmgt.poller.MonitoredService;
 import org.opennms.netmgt.poller.NetworkInterface;
 import org.opennms.netmgt.poller.NetworkInterfaceNotSupportedException;
+import org.opennms.netmgt.poller.PollStatus;
 
 /**
  * This class is designed to be used by the service poller framework to test the
@@ -59,6 +59,12 @@ import org.opennms.netmgt.poller.NetworkInterfaceNotSupportedException;
 
 // this is marked not distributable because it relieds on the dhcpd deamon of opennms
 @Distributable(DistributionContext.DAEMON)
+
+/**
+ *
+ * @deprecated Use the SystemExecuteMonitor instead
+ */
+@Deprecated
 final public class GpMonitor extends AbstractServiceMonitor {
     private static final Logger LOG = LoggerFactory.getLogger(GpMonitor.class);
     /**

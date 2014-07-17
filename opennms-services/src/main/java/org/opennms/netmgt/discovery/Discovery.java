@@ -50,11 +50,11 @@ import org.opennms.core.utils.InetAddressUtils;
 import org.opennms.netmgt.EventConstants;
 import org.opennms.netmgt.config.DiscoveryConfigFactory;
 import org.opennms.netmgt.daemon.AbstractServiceDaemon;
-import org.opennms.netmgt.eventd.EventIpcManagerFactory;
 import org.opennms.netmgt.icmp.Pinger;
 import org.opennms.netmgt.model.discovery.IPPollAddress;
 import org.opennms.netmgt.model.events.EventBuilder;
 import org.opennms.netmgt.model.events.EventForwarder;
+import org.opennms.netmgt.model.events.EventIpcManagerFactory;
 import org.opennms.netmgt.model.events.annotations.EventHandler;
 import org.opennms.netmgt.model.events.annotations.EventListener;
 import org.opennms.netmgt.xml.event.Event;
@@ -108,7 +108,7 @@ public class Discovery extends AbstractServiceDaemon {
     private volatile EventForwarder m_eventForwarder;
 
     private Pinger m_pinger;
-
+    
     /**
      * <p>setEventForwarder</p>
      *
@@ -171,9 +171,16 @@ public class Discovery extends AbstractServiceDaemon {
 
         Assert.state(m_eventForwarder != null, "must set the eventForwarder property");
         
+        //Wiring doesn't seem to be working.
+        Assert.state(m_discoveryFactory != null, "must set the Discovery Factory propertly");
+        cb.setDiscoveryFactory(m_discoveryFactory);
+        
         try {
+        	LOG.debug("Initializing configuration...");
             initializeConfiguration();
+        	LOG.debug("Configuration initialized.  Init the factory...");
             EventIpcManagerFactory.init();
+        	LOG.debug("Factory init'd.");
         } catch (Throwable e) {
             LOG.debug("onInit: initialization failed", e);
             throw new IllegalStateException("Could not initialize discovery configuration.", e);
@@ -204,6 +211,7 @@ public class Discovery extends AbstractServiceDaemon {
                     m_xstatus = PING_IDLE;
                     return;
                 }
+                LOG.debug("Pinging: {} of foreign source {}", pollAddress.getAddress().toString(), m_discoveryFactory.getForeignSource(pollAddress.getAddress()));
                 ping(pollAddress);
                 try {
                     Thread.sleep(getDiscoveryFactory().getIntraPacketDelay());
@@ -229,6 +237,8 @@ public class Discovery extends AbstractServiceDaemon {
                 } catch (Throwable e) {
                     LOG.debug("error pinging {}", address.getAddress(), e);
                 }
+            } else {
+            	LOG.debug("{} already discovered.", address.toString());
             }
         }
     }

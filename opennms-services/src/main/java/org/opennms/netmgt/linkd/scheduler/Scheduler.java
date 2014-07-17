@@ -118,7 +118,7 @@ public class Scheduler implements Runnable, PausableFiber, ScheduleTimer {
 		m_status = START_PENDING;
 		m_runner = Executors.newFixedThreadPool(
 			maxSize,
-			new LogPreservingThreadFactory(getClass().getSimpleName(), maxSize, false)
+			new LogPreservingThreadFactory(getClass().getSimpleName(), maxSize, true)
 		);
 		m_queues = new ConcurrentSkipListMap<Long,PeekableFifoQueue<ReadyRunnable>>();
 		m_scheduled = 0;
@@ -339,8 +339,6 @@ public class Scheduler implements Runnable, PausableFiber, ScheduleTimer {
 	 * @return a {@link org.opennms.netmgt.linkd.scheduler.ReadyRunnable} object.
 	 */
 	public synchronized ReadyRunnable getReadyRunnable(ReadyRunnable runnable) {
-		LOG.debug("getReadyRunnable: Retrieving {}", runnable.getInfo());
-
 		ReadyRunnable rr = null;
 		synchronized (m_queues) {
 			// get an iterator so that we can cycle
@@ -353,9 +351,6 @@ public class Scheduler implements Runnable, PausableFiber, ScheduleTimer {
 			}
 		}
 
-		if (rr == null) {
-		    LOG.info("getReadyRunnable: instance {} not found on scheduler", runnable.getInfo());
-		}
 		return rr;
 	}
 	
@@ -388,6 +383,7 @@ public class Scheduler implements Runnable, PausableFiber, ScheduleTimer {
 			do {
 				try {
 					readyRun = in.remove();
+				    LOG.debug("getReadyRunnable: parsing ready runnable {}", readyRun);
 					if (in.size() == maxLoops && first) {
 						maxLoops++;
 					}

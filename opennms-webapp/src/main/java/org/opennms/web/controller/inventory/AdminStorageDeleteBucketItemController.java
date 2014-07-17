@@ -34,7 +34,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.opennms.core.utils.WebSecurityUtils;
-import org.opennms.web.springframework.security.Authentication;
+import org.opennms.web.api.Authentication;
 import org.opennms.web.svclayer.inventory.InventoryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -91,8 +91,7 @@ public class AdminStorageDeleteBucketItemController implements Controller {
             }
      }
         Map<String, Object> model  = m_inventoryService.getBuckets(nodeid);
-        ModelAndView modelAndView = new ModelAndView("admin/storage/storageAdmin","model",model);
-        return modelAndView;
+        return new ModelAndView("admin/storage/storageAdmin","model",model);
     }
     
     

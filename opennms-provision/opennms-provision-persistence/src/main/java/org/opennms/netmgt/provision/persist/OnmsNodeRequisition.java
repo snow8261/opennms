@@ -35,6 +35,8 @@ import org.opennms.netmgt.model.NetworkBuilder;
 import org.opennms.netmgt.model.OnmsNode;
 import org.opennms.netmgt.model.NetworkBuilder.InterfaceBuilder;
 import org.opennms.netmgt.model.NetworkBuilder.NodeBuilder;
+import org.opennms.netmgt.model.OnmsNode.NodeLabelSource;
+import org.opennms.netmgt.model.OnmsNode.NodeType;
 import org.opennms.netmgt.provision.persist.requisition.RequisitionAsset;
 import org.opennms.netmgt.provision.persist.requisition.RequisitionCategory;
 import org.opennms.netmgt.provision.persist.requisition.RequisitionInterface;
@@ -58,12 +60,9 @@ public class OnmsNodeRequisition {
     private List<OnmsIpInterfaceRequisition> m_ifaceReqs;
     private List<OnmsNodeCategoryRequisition> m_categoryReqs;
 
-    /**
-     * <p>Constructor for OnmsNodeRequisition.</p>
-     *
-     * @param foreignSource a {@link java.lang.String} object.
-     * @param node a {@link org.opennms.netmgt.provision.persist.requisition.RequisitionNode} object.
-     */
+    public OnmsNodeRequisition() {
+    }
+
     public OnmsNodeRequisition(final String foreignSource, final RequisitionNode node) {
         m_foreignSource = foreignSource;
         m_node = node;
@@ -170,8 +169,8 @@ public class OnmsNodeRequisition {
         @Override
         public void visitNode(final OnmsNodeRequisition nodeReq) {
         	final NodeBuilder nodeBldr = bldr.addNode(nodeReq.getNodeLabel());
-            nodeBldr.setLabelSource("U");
-            nodeBldr.setType("A");
+            nodeBldr.setLabelSource(NodeLabelSource.USER);
+            nodeBldr.setType(NodeType.ACTIVE);
             nodeBldr.setForeignSource(nodeReq.getForeignSource());
             nodeBldr.setForeignId(nodeReq.getForeignId());
             nodeBldr.getAssetRecord().setBuilding(nodeReq.getBuilding());

@@ -46,15 +46,13 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
 import org.opennms.core.db.DataSourceFactory;
-import org.opennms.core.utils.Argument;
 import org.opennms.core.utils.MatchTable;
 import org.opennms.core.utils.PropertiesUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.opennms.netmgt.config.NotificationManager;
+import org.opennms.netmgt.model.notifd.Argument;
 import org.opennms.netmgt.model.notifd.NotificationStrategy;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /**

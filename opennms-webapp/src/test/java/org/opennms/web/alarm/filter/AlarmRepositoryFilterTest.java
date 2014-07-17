@@ -39,9 +39,9 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.opennms.core.spring.BeanUtils;
 import org.opennms.core.test.OpenNMSJUnit4ClassRunner;
 import org.opennms.core.test.db.annotations.JUnitTemporaryDatabase;
-import org.opennms.core.utils.BeanUtils;
 import org.opennms.netmgt.dao.DatabasePopulator;
 import org.opennms.netmgt.dao.api.AlarmDao;
 import org.opennms.netmgt.dao.api.AlarmRepository;
@@ -197,7 +197,7 @@ public class AlarmRepositoryFilterTest implements InitializingBean {
     @Test
     @Transactional
     public void testNegativeServiceFilter(){
-        AlarmCriteria criteria = getCriteria(new NegativeServiceFilter(12));
+        AlarmCriteria criteria = getCriteria(new NegativeServiceFilter(12, null));
         
         OnmsAlarm[] alarms = m_daoAlarmRepo.getMatchingAlarms(AlarmUtil.getOnmsCriteria(criteria));
         assertEquals(1, alarms.length);
@@ -250,7 +250,7 @@ public class AlarmRepositoryFilterTest implements InitializingBean {
     @Test
     @Transactional
     public void testServiceFilter(){
-        AlarmCriteria criteria = getCriteria(new ServiceFilter(1));
+        AlarmCriteria criteria = getCriteria(new ServiceFilter(1, null));
         
         OnmsAlarm[] alarms = m_daoAlarmRepo.getMatchingAlarms(AlarmUtil.getOnmsCriteria(criteria));
         assertEquals(0, alarms.length);
@@ -272,9 +272,6 @@ public class AlarmRepositoryFilterTest implements InitializingBean {
         
         OnmsAlarm[] alarms = m_daoAlarmRepo.getMatchingAlarms(AlarmUtil.getOnmsCriteria(criteria));
         assertEquals(1, alarms.length);
-        
-        //alarms = m_jdbcWebAlarmRepo.getMatchingAlarms(AlarmUtil.getOnmsCriteria(criteria));
-        //assertEquals(1, alarms);
     }
     
     @Test
@@ -284,9 +281,6 @@ public class AlarmRepositoryFilterTest implements InitializingBean {
         
         OnmsAlarm[] alarms = m_daoAlarmRepo.getMatchingAlarms(AlarmUtil.getOnmsCriteria(criteria));
         assertEquals(1, alarms.length);
-        
-        //alarms = m_jdbcWebAlarmRepo.getMatchingAlarms(AlarmUtil.getOnmsCriteria(criteria));
-        //assertEquals(1, alarms.length);
     }
     
     @Test

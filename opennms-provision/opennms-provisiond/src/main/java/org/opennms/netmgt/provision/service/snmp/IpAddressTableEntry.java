@@ -36,6 +36,7 @@ import org.opennms.core.utils.InetAddressUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.opennms.netmgt.provision.service.IPAddressTableTracker;
+import org.opennms.netmgt.snmp.NamedSnmpVar;
 import org.opennms.netmgt.snmp.SnmpObjId;
 import org.opennms.netmgt.snmp.SnmpResult;
 import org.opennms.netmgt.snmp.SnmpValue;
@@ -64,9 +65,9 @@ public final class IpAddressTableEntry extends SnmpTableEntry {
     private static final Logger LOG = LoggerFactory.getLogger(IpAddressTableEntry.class);
     // Lookup strings for specific table entries
 
-    public final static String IP_ADDRESS_IF_INDEX = "ipAddressIfIndex";
-    public final static String IP_ADDR_ENT_NETMASK = "ipAddressPrefix";
-    public final static String IP_ADDR_TYPE        = "ipAddressType";
+    public static final String IP_ADDRESS_IF_INDEX = "ipAddressIfIndex";
+    public static final String IP_ADDR_ENT_NETMASK = "ipAddressPrefix";
+    public static final String IP_ADDR_TYPE        = "ipAddressType";
 
     /**
      * <P>

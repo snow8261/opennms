@@ -36,10 +36,10 @@ import java.net.UnknownHostException;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.opennms.core.spring.BeanUtils;
 import org.opennms.core.test.MockLogAppender;
 import org.opennms.core.test.OpenNMSJUnit4ClassRunner;
 import org.opennms.core.test.snmp.annotations.JUnitSnmpAgent;
-import org.opennms.core.utils.BeanUtils;
 import org.opennms.core.utils.InetAddressUtils;
 import org.opennms.netmgt.provision.detector.snmp.OpenManageChassisDetector;
 import org.springframework.beans.factory.InitializingBean;
@@ -52,7 +52,7 @@ import org.springframework.test.context.ContextConfiguration;
 		"classpath:/META-INF/opennms/detectors.xml"
 })
 public class OpenManageChassisDetectorTest implements InitializingBean {
-    static final String TEST_IP_ADDRESS = "192.168.0.1";
+    static final String TEST_IP_ADDRESS = "192.0.2.1";
 
     @Autowired
     private OpenManageChassisDetector m_detector;
@@ -67,7 +67,7 @@ public class OpenManageChassisDetectorTest implements InitializingBean {
         MockLogAppender.setupLogging();
 
         m_detector.setRetries(2);
-        m_detector.setTimeout(500);
+        m_detector.setTimeout(5000);
     }
 
     @Test(timeout=90000)

@@ -5,8 +5,9 @@ TOPDIR=`cd $MYDIR; pwd`
 
 cd "$TOPDIR"
 
-#opennms-core_1.9.9-0.<datestamp>_all.deb
-#opennms-core_<pom-version>-<release-major>.<release-minor>.<release-micro>_all.deb
+JAVA_HOME=`"$TOPDIR/bin/javahome.pl"`
+
+BINARIES="dch dpkg-sig dpkg-buildpackage expect"
 
 function exists() {
     which "$1" >/dev/null 2>&1
@@ -106,23 +107,6 @@ function version()
         head -n 1
 }
 
-function setJavaHome()
-{
-    if [ -z "$JAVA_HOME" ]; then
-        # hehe
-        for dir in /usr/lib/jvm/java-{1.5.0,6,7,8,9}-sun; do
-            if [ -x "$dir/bin/java" ]; then
-                export JAVA_HOME="$dir"
-                break
-            fi
-        done
-    fi
-
-    if [ -z $JAVA_HOME ]; then
-        die "*** JAVA_HOME must be set ***"
-    fi
-}
-
 function skipCompile()
 {
     if $ASSEMBLY_ONLY; then echo 1; else echo 0; fi
@@ -182,7 +166,6 @@ function main()
     EXTRA_INFO2=$(extraInfo2)
     VERSION=$(version)
 
-    setJavaHome
     export PATH="$TOPDIR/maven/bin:$JAVA_HOME/bin:$PATH"
 
     if $BUILD_DEB; then
@@ -196,13 +179,7 @@ function main()
 
         # prime the local ~/.m2/repository
         if [ -d core/build ]; then
-            nice ./compile.pl -N install || die "unable to build top-level POM"
-            pushd core
-                nice ../compile.pl -N install || die "unable to build core POM"
-            popd
-            pushd core/build
-                nice ../../compile.pl install || die "unable to build build tools"
-            popd
+            nice ./compile.pl --projects :org.opennms.core.build --also-make install || die "unable to prime build tools"
         fi
 
         if [ -f "${HOME}/.m2/settings.xml" ]; then
@@ -231,5 +208,13 @@ function main()
     echo ""
     echo "Your completed Debian packages are in the $TOPDIR/.. directory."
 }
+
+for BIN in $BINARIES; do
+	EXECUTABLE=`which $BIN 2>/dev/null || :`
+	if [ -z "$EXECUTABLE" ] || [ ! -x "$EXECUTABLE" ]; then
+		echo "ERROR: $BIN not found"
+		exit 1
+	fi
+done
 
 main "$@"

@@ -94,7 +94,7 @@ public abstract class ParameterMap {
      * @param key a {@link java.lang.String} object.
      * @param defValue a int.
      */
-    public static int getKeyedInteger(@SuppressWarnings("unchecked") final Map map, final String key, final int defValue) {
+    public static int getKeyedInteger(@SuppressWarnings("rawtypes") final Map map, final String key, final int defValue) {
     	return new Long(ParameterMap.getKeyedLong(map, key, new Long(defValue))).intValue();
     }
 
@@ -110,7 +110,7 @@ public abstract class ParameterMap {
      * @param defValues an array of int.
      */
     @SuppressWarnings("unchecked")
-    public final static int[] getKeyedIntegerArray(final Map map, final String key, final int[] defValues) {
+    public static final int[] getKeyedIntegerArray(final Map map, final String key, final int[] defValues) {
         
         if (map == null) return defValues;
         

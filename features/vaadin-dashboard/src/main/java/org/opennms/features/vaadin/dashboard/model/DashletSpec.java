@@ -44,7 +44,7 @@ public class DashletSpec {
     /**
      * The normal duration before moving to the next {@link Dashlet}
      */
-    private int m_duration = 5;
+    private int m_duration = 15;
     /**
      * The priority of the {@link Dashlet}
      */
@@ -65,6 +65,10 @@ public class DashletSpec {
      * A {@link Map} representing the parameters
      */
     private Map<String, String> m_parameters = new TreeMap<String, String>();
+    /**
+     * dashlet instance title
+     */
+    private String m_title = "";
 
     /**
      * Default constructor
@@ -179,6 +183,22 @@ public class DashletSpec {
      */
     public void setParameters(Map<String, String> parameters) {
         m_parameters = parameters;
+    }
+
+    /**
+     * Returns the dashlet's title
+     */
+    public String getTitle() {
+        return m_title;
+    }
+
+    /**
+     * Sets the title.
+     *
+     * @param title the title to be set
+     */
+    public void setTitle(String title) {
+        m_title = title;
     }
 
     @Override

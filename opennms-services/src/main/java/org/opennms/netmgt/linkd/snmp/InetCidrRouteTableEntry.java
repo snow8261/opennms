@@ -31,6 +31,7 @@ package org.opennms.netmgt.linkd.snmp;
 import java.net.InetAddress;
 
 import org.opennms.core.utils.InetAddressUtils;
+import org.opennms.netmgt.snmp.NamedSnmpVar;
 
 /**
  *<p>The {@link InetCidrRouteTableEntry} class is designed to hold all the MIB-II
@@ -217,7 +218,8 @@ public final class InetCidrRouteTableEntry extends IpRouteCollectorEntry
         * ipRouteProto value. If this metric is not used,
         * its value should be set to -1.
         */
-       new NamedSnmpVar(NamedSnmpVar.SNMPINT32, IP_ROUTE_METRIC5, ".1.3.6.1.2.1.4.24.7.1.16", 12)
+       new NamedSnmpVar(NamedSnmpVar.SNMPINT32, IP_ROUTE_METRIC5, ".1.3.6.1.2.1.4.24.7.1.16", 12),
+       new NamedSnmpVar(NamedSnmpVar.SNMPINT32, IP_ROUTE_STATUS, ".1.3.6.1.2.1.4.24.7.1.17", 13)
 
        /**
         * A reference to MIB definitions specific to the
@@ -264,7 +266,6 @@ public final class InetCidrRouteTableEntry extends IpRouteCollectorEntry
        final Integer mask = 0xffffffff << (32 - prefix);
        final Integer value = mask;
        final byte[] bytes = new byte[]{ (byte)(value >>> 24), (byte)(value >> 16 & 0xff), (byte)(value >> 8 & 0xff), (byte)(value & 0xff) };
-       final InetAddress netAddr = InetAddressUtils.getInetAddress(bytes);
-       return netAddr;
+       return InetAddressUtils.getInetAddress(bytes);
    }
 }

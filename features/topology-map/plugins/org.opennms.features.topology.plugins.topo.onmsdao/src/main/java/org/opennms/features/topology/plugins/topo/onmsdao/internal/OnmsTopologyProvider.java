@@ -30,8 +30,8 @@ package org.opennms.features.topology.plugins.topo.onmsdao.internal;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import org.opennms.features.topology.api.topo.AbstractTopologyProvider;
+import org.opennms.features.topology.api.topo.Criteria;
 import org.opennms.features.topology.api.topo.Edge;
 import org.opennms.features.topology.api.topo.GraphProvider;
 import org.opennms.features.topology.api.topo.SimpleGroup;
@@ -133,6 +133,11 @@ public class OnmsTopologyProvider extends AbstractTopologyProvider implements Gr
     }
 
     @Override
+    public Criteria getDefaultCriteria() {
+        return null;  //not supported yet
+    }
+
+    @Override
     public void load(String filename) {
 
         OnmsMap map = getMap(Integer.parseInt(filename));
@@ -154,7 +159,7 @@ public class OnmsTopologyProvider extends AbstractTopologyProvider implements Gr
             vertex.setLocked(false);
             vertex.setSelected(false);
             vertex.setIconKey(element.getIconName());
-            vertex.setParent(parent);
+            if (!vertex.equals(parent)) vertex.setParent(parent);
             vertexes.add(vertex);
         }
         
@@ -163,7 +168,7 @@ public class OnmsTopologyProvider extends AbstractTopologyProvider implements Gr
             vertex.setLocked(false);
             vertex.setSelected(false);
             vertex.setIconKey(element.getIconName());
-            vertex.setParent(parent);
+            if (!vertex.equals(parent)) vertex.setParent(parent);
             vertexes.add(vertex);
             vertexes.addAll(getVertex(element.getElementId(),vertex));
         }
@@ -183,7 +188,7 @@ public class OnmsTopologyProvider extends AbstractTopologyProvider implements Gr
             for (DataLinkInterface link: getDataLinkInterfaceDao().findByNodeParentId(((SimpleLeafVertex)target).getNodeID())) {
                 for (Vertex source: leafs) {
                    if ( link.getNode().getId() == ((SimpleLeafVertex)source).getNodeID() ) {
-                       connectVertices(link.getId().toString(), source, target);
+                       connectVertices(link.getId().toString(), source, target, TOPOLOGY_NAMESPACE_ONMSDAO);
                    }
                 }
             }

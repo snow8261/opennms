@@ -55,6 +55,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlTransient;
 
 import org.apache.commons.lang.builder.ToStringBuilder;
+import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 import org.opennms.netmgt.model.OnmsArpInterface.StatusType;
 
 /**
@@ -66,6 +67,7 @@ import org.opennms.netmgt.model.OnmsArpInterface.StatusType;
 @XmlRootElement(name = "stpNode")
 @Entity
 @Table(name="stpNode", uniqueConstraints = {@UniqueConstraint(columnNames={"nodeId", "baseVlan"})})
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class OnmsStpNode {
 	
     @Embeddable
@@ -165,10 +167,10 @@ public class OnmsStpNode {
             return null;
         }
         
-        public static BridgeBaseType UNKNOWN = new BridgeBaseType(BASE_TYPE_UNKNOWN);
-        public static BridgeBaseType TRANSPARENT_ONLY = new BridgeBaseType(BASE_TYPE_TRANSPARENT_ONLY);
-        public static BridgeBaseType SOURCEROUTE_ONLY = new BridgeBaseType(BASE_TYPE_SOURCEROUTE_ONLY);
-        public static BridgeBaseType SRT = new BridgeBaseType(BASE_TYPE_SRT);
+        public static final BridgeBaseType UNKNOWN = new BridgeBaseType(BASE_TYPE_UNKNOWN);
+        public static final BridgeBaseType TRANSPARENT_ONLY = new BridgeBaseType(BASE_TYPE_TRANSPARENT_ONLY);
+        public static final BridgeBaseType SOURCEROUTE_ONLY = new BridgeBaseType(BASE_TYPE_SOURCEROUTE_ONLY);
+        public static final BridgeBaseType SRT = new BridgeBaseType(BASE_TYPE_SRT);
 
 
     }

@@ -29,6 +29,12 @@
 
 --%>
 
+<%@page import="org.opennms.web.lldp.LldpLinkNode"%>
+<%@page import="org.opennms.web.lldp.LldpElementFactory"%>
+<%@page import="org.opennms.web.lldp.LldpElementFactoryInterface"%>
+<%@page import="org.opennms.web.ospf.OspfLinkNode"%>
+<%@page import="org.opennms.web.ospf.OspfElementFactory"%>
+<%@page import="org.opennms.web.ospf.OspfElementFactoryInterface"%>
 <%@page
 	language="java"
 	contentType="text/html"
@@ -42,8 +48,7 @@
 		org.opennms.netmgt.model.OnmsNode,
 		org.opennms.core.utils.WebSecurityUtils,
 		org.opennms.web.element.*,
-		org.opennms.web.event.*,
-		org.opennms.web.springframework.security.Authentication,
+		org.opennms.web.api.Authentication,
 		org.opennms.web.svclayer.ResourceService
 	"
 %>
@@ -97,6 +102,8 @@
 
 <%
     NetworkElementFactoryInterface factory = NetworkElementFactory.getInstance(getServletContext());
+    LldpElementFactoryInterface lldpfactory = LldpElementFactory.getInstance(getServletContext());
+    OspfElementFactoryInterface ospffactory = OspfElementFactory.getInstance(getServletContext());
 
     String nodeIdString = request.getParameter( "node" );
 
@@ -110,6 +117,12 @@
     OnmsNode node_db = factory.getNode( nodeId );
     if( node_db == null ) {
 		throw new ElementNotFoundException("No such node in database", "node", "element/linkednode.jsp", "node", "element/nodeList.htm");
+    }
+    String parentRes = Integer.toString(nodeId);
+    String parentResType = "node";
+    if (!(node_db.getForeignSource() == null) && !(node_db.getForeignId() == null)) {
+        parentRes = node_db.getForeignSource() + ":" + node_db.getForeignId();
+        parentResType = "nodeSource";
     }
 
     //find the telnet interfaces, if any
@@ -164,12 +177,8 @@
     }
 
     //find if SNMP is on this node 
-    boolean isSnmp = false;
     Service[] snmpServices = factory.getServicesOnNode(nodeId, this.snmpServiceId);
 
-    if( snmpServices != null && snmpServices.length > 0 ) 
-	isSnmp = true;
-    
     boolean isBridge = factory.isBridgeNode(nodeId);
     boolean isRouteIP = factory.isRouteInfoNode(nodeId);
 
@@ -231,11 +240,11 @@
           </li>
         <% } %>
 
-        <% if (m_resourceService.findNodeChildResources(nodeId).size() > 0) { %>
+        <% if (m_resourceService.findNodeChildResources(node_db).size() > 0) { %>
 	  <li>
         <c:url var="resourceGraphsUrl" value="graph/chooseresource.htm">
-          <c:param name="parentResourceType" value="node"/>
-          <c:param name="parentResource" value="<%= Integer.toString(nodeId) %>"/>
+          <c:param name="parentResourceType" value="<%=parentResType%>"/>
+          <c:param name="parentResource" value="<%=parentRes%>"/>
           <c:param name="reports" value="all"/>
         </c:url>
           <a href="${fn:escapeXml(resourceGraphsUrl)}">Resource Graphs</a>
@@ -275,8 +284,14 @@
 			<% }%>
 	</div>
 <hr />        
-
-<h3><%=node_db.getLabel()%> Links</h3>
+<%
+   if (factory.getDataLinksOnNode(nodeId).isEmpty()) {
+%>
+	<div class="TwoColLeft">
+		<h3>No Links found on <%=node_db.getLabel()%> by Linkd</h3>
+	</div>
+<% } else { %>
+<h3><%=node_db.getLabel()%> Links found by Linkd</h3>
 		
 		<!-- Link box -->
 		<table class="standard">
@@ -287,6 +302,7 @@
             <th>L3 Interfaces</th>
 			<th width="10%">Link Type</th>
 			<th width="10%">Status</th>
+			<th>Discovery Protocol</th>
 			<th>Last Scan</th>
 			 
 <%--
@@ -361,6 +377,10 @@
 		    </td>
 
 		    <td class="standard">
+             	<%=linkInterface.getProtocol()%>
+		    </td>
+
+		    <td class="standard">
 		    <% if (linkInterface.getLastPollTime() != null ) { %>
              	<%=linkInterface.getLastPollTime()%>
 		    <% } else { %>
@@ -427,7 +447,122 @@
 		    
 	    </table>
 
+<% }  %>
 
-<form method="post" name="setStatus" />
+<hr />        
+<%
+   if (lldpfactory.getLldpLinks(nodeId).isEmpty()) {
+%>
+	<div class="TwoColLeft">
+		<h3>No Lldp Remote Table Links found on <%=node_db.getLabel()%> by Enhanced Linkd</h3>
+	</div>
+<% } else { %>
+<h3><%=node_db.getLabel()%> Lldp Remote Table Links found by Enhanced Linkd</h3>
+		
+		<!-- Link box -->
+		<table class="standard">
+		
+		<thead>
+			<tr>
+			<th>Local Port</th> 
+            <th>Local Port Descr</th>
+			<th>Remote Chassis Id</th>
+			<th>Remote Sysname</th>
+			<th>Remote Port</th> 
+            <th>Remote Port Descr</th>
+			<th>Created</th>
+			<th>Last Poll</th>
+			</tr>
+		</thead>
+				
+		<% for( LldpLinkNode lldplink: lldpfactory.getLldpLinks(nodeId)) { %>
+	    <tr>
+		    <td class="standard">
+		 	<% if (lldplink.getLldpPortUrl() != null) { %>
+            	<a href="<%=lldplink.getLldpPortUrl()%>"><%=lldplink.getLldpPortString()%></a>
+            <% } else { %> 
+                    <%=lldplink.getLldpPortString()%>
+    		<% } %> 
+            </td>
+		    <td class="standard"><%=lldplink.getLldpPortDescr()%></td>
+            <td class="standard">
+            <% if (lldplink.getLldpRemChassisIdUrl() != null) { %>
+            	<a href="<%=lldplink.getLldpRemChassisIdUrl()%>"><%=lldplink.getLldpRemChassisIdString()%></a>
+            <% } else { %> 
+                    <%=lldplink.getLldpRemChassisIdString()%>
+    			<% } %> 
+            </td>
+            <td class="standard">
+                    <%=lldplink.getLldpRemSysName()%>
+            </td>
+		    <td class="standard">
+		 	<% if (lldplink.getLldpRemPortUrl() != null) { %>
+            	<a href="<%=lldplink.getLldpRemPortUrl()%>"><%=lldplink.getLldpRemPortString()%></a>
+            <% } else { %> 
+                    <%=lldplink.getLldpRemPortString()%>
+    		<% } %> 
+            </td>
+		    <td class="standard"><%=lldplink.getLldpRemPortDescr()%></td>
+		    <td class="standard"><%=lldplink.getLldpCreateTime()%></td>
+		    <td class="standard"><%=lldplink.getLldpLastPollTime()%></td>
+	    </tr>
+	    <% } %>
+		    
+	    </table>
+
+<% }  %>
+
+<hr />        
+<%
+   if (ospffactory.getOspfLinks(nodeId).isEmpty()) {
+%>
+	<div class="TwoColLeft">
+		<h3>No Ospf Nbr Links found on <%=node_db.getLabel()%> by Enhanced Linkd</h3>
+	</div>
+<% } else { %>
+<h3><%=node_db.getLabel()%> Ospf Nbr Table Links found by Enhanced Linkd</h3>
+		
+		<!-- Link box -->
+		<table class="standard">
+		
+		<thead>
+			<tr>
+			<th>Local Ip Address</th> 
+            <th>Local Address Less Index</th>
+			<th>Nbr Router Id</th>
+			<th>Nbr Ip Address</th>
+			<th>Nbr Address Kess Index</th> 
+			<th>Created</th>
+			<th>Last Poll</th>
+			</tr>
+		</thead>
+				
+		<% for( OspfLinkNode ospflink: ospffactory.getOspfLinks(nodeId)) { %>
+	    <tr>
+		    <td class="standard"><%=ospflink.getOspfIpAddr()%>(ifindex=<%=ospflink.getOspfIfIndex()%>)</td>
+		    <td class="standard"><%=ospflink.getOspfAddressLessIndex()%></td>
+            <td class="standard">
+            <% if (ospflink.getOspfRemRouterUrl() != null) { %>
+            	<a href="<%=ospflink.getOspfRemRouterUrl()%>"><%=ospflink.getOspfRemRouterId()%></a>
+            <% } else { %> 
+                    <%=ospflink.getOspfRemRouterId()%>
+    			<% } %> 
+            </td>
+		    <td class="standard">
+		 	<% if (ospflink.getOspfRemPortUrl() != null) { %>
+            	<a href="<%=ospflink.getOspfRemPortUrl()%>"><%=ospflink.getOspfRemIpAddr()%></a>
+            <% } else { %> 
+                    <%=ospflink.getOspfRemIpAddr()%>
+    		<% } %> 
+            </td>
+		    <td class="standard"><%=ospflink.getOspfRemAddressLessIndex()%></td>
+		    <td class="standard"><%=ospflink.getOspfLinkCreateTime()%></td>
+		    <td class="standard"><%=ospflink.getOspfLinkLastPollTime()%></td>
+	    </tr>
+	    <% } %>
+		    
+	    </table>
+
+<% }  %>
 
 <jsp:include page="/includes/footer.jsp" flush="false" />

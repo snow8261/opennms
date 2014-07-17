@@ -38,11 +38,12 @@ import java.util.TreeMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.opennms.netmgt.snmp.AggregateTracker;
+import org.opennms.netmgt.snmp.NamedSnmpVar;
 import org.opennms.netmgt.snmp.SnmpInstId;
 import org.opennms.netmgt.snmp.SnmpObjId;
 import org.opennms.netmgt.snmp.SnmpResult;
 
-abstract public class SnmpTable<T extends SnmpTableEntry> extends AggregateTracker {
+public abstract class SnmpTable<T extends SnmpTableEntry> extends AggregateTracker {
     private static final Logger LOG = LoggerFactory.getLogger(SnmpTable.class);
     private Map<SnmpInstId, T> m_results = new TreeMap<SnmpInstId, T>();
     private InetAddress m_address;
@@ -53,7 +54,7 @@ abstract public class SnmpTable<T extends SnmpTableEntry> extends AggregateTrack
      *
      * @param address a {@link java.net.InetAddress} object.
      * @param tableName a {@link java.lang.String} object.
-     * @param columns an array of {@link org.opennms.netmgt.provision.service.snmp.NamedSnmpVar} objects.
+     * @param columns an array of {@link org.opennms.netmgt.snmp.NamedSnmpVar} objects.
      * @param <T> a T object.
      */
     protected SnmpTable(InetAddress address, String tableName, NamedSnmpVar[] columns) {
@@ -64,7 +65,7 @@ abstract public class SnmpTable<T extends SnmpTableEntry> extends AggregateTrack
      *
      * @param address a {@link java.net.InetAddress} object.
      * @param tableName a {@link java.lang.String} object.
-     * @param columns an array of {@link org.opennms.netmgt.provision.service.snmp.NamedSnmpVar} objects.
+     * @param columns an array of {@link org.opennms.netmgt.snmp.NamedSnmpVar} objects.
      * @param instances a {@link java.util.Set} object.
      */
     protected SnmpTable(InetAddress address, String tableName, NamedSnmpVar[] columns, Set<SnmpInstId> instances) {

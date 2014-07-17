@@ -27,6 +27,7 @@
  *******************************************************************************/
 package org.opennms.features.vaadin.mibcompiler;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.StringWriter;
 import java.net.URL;
@@ -45,11 +46,13 @@ import org.opennms.features.vaadin.mibcompiler.services.PrefabGraphDumper;
 import org.opennms.netmgt.config.datacollection.DatacollectionGroup;
 import org.opennms.netmgt.config.datacollection.Group;
 import org.opennms.netmgt.config.datacollection.MibObj;
+import org.opennms.netmgt.dao.support.PropertiesGraphDao;
 import org.opennms.netmgt.model.PrefabGraph;
 import org.opennms.netmgt.xml.eventconf.Event;
 import org.opennms.netmgt.xml.eventconf.Events;
 import org.opennms.netmgt.xml.eventconf.Maskelement;
 import org.opennms.netmgt.xml.eventconf.Varbindsdecode;
+import org.springframework.orm.ObjectRetrievalFailureException;
 
 /**
  * The Test Class for JsmiMibParser.
@@ -219,16 +222,16 @@ public class JsmiMibParserTest {
             DatacollectionGroup dcGroup = parser.getDataCollection();
             Assert.assertNotNull(dcGroup);
             System.out.println(JaxbUtils.marshal(dcGroup));
-            Assert.assertEquals(5, dcGroup.getResourceTypeCount());
-            Assert.assertEquals(7, dcGroup.getGroupCount());
+            Assert.assertEquals(5, dcGroup.getResourceTypes().size());
+            Assert.assertEquals(7, dcGroup.getGroups().size());
             Group mibGroup = null;
-            for (Group g : dcGroup.getGroupCollection()) {
+            for (Group g : dcGroup.getGroups()) {
                 if (g.getName().equals("ifTable"))
                     mibGroup = g;
             }
             Assert.assertNotNull(mibGroup);
-            Assert.assertEquals(22, mibGroup.getMibObjCount());
-            for (MibObj mo : mibGroup.getMibObjCollection()) {
+            Assert.assertEquals(22, mibGroup.getMibObjs().size());
+            for (MibObj mo : mibGroup.getMibObjs()) {
                 Assert.assertEquals("ifEntry", mo.getInstance());
                 Assert.assertTrue(mo.getOid().startsWith(".1.3.6.1.2.1.2.2.1"));
                 Assert.assertTrue(mo.getType().matches("^(?i)(counter|gauge|timeticks|integer|octetstring|string)?\\d*$"));
@@ -250,8 +253,8 @@ public class JsmiMibParserTest {
             Assert.assertNotNull(dcGroup);
             System.out.println(JaxbUtils.marshal(dcGroup));
             int count = 0;
-            for (Group group : dcGroup.getGroupCollection()) {
-                for (MibObj mo : group.getMibObjCollection()) {
+            for (final Group group : dcGroup.getGroups()) {
+                for (final MibObj mo : group.getMibObjs()) {
                     if (mo.getAlias().length() > 19) { // Character restriction.
                         count++;
                     }
@@ -277,7 +280,23 @@ public class JsmiMibParserTest {
             PrefabGraphDumper dumper = new PrefabGraphDumper();
             dumper.dump(graphs, writer);
             System.out.println(writer.getBuffer().toString());
-            Assert.assertEquals(100074, writer.getBuffer().toString().length());
+            Assert.assertEquals(99198, writer.getBuffer().toString().length());
+
+            PropertiesGraphDao dao = new PropertiesGraphDao();
+            StringBuffer sb = new StringBuffer();
+            sb.append("command.prefix=/usr/bin/rrdtool\n");
+            sb.append("output.mime=image/png\n");
+            sb.append(writer.getBuffer().toString());
+            dao.loadProperties("performance", new ByteArrayInputStream(sb.toString().getBytes()));
+            Assert.assertEquals(graphs.size(), dao.getAllPrefabGraphs().size());
+            for (PrefabGraph g : graphs) {
+                try {
+                    PrefabGraph graph = dao.getPrefabGraph(g.getName());
+                    Assert.assertEquals(g.getTitle(), graph.getTitle());
+                } catch (ObjectRetrievalFailureException e) {
+                    Assert.fail(e.getMessage());
+                }
+            }
         } else {
             Assert.fail("The Clavister-MIB.mib file couldn't be parsed successfully.");
         }

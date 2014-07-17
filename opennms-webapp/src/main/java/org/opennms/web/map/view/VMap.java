@@ -43,7 +43,7 @@ import org.opennms.web.map.db.DbMap;
  *
  * @since 1.8.1
  */
-final public class VMap extends DbMap {
+public final class VMap extends DbMap {
     private final Map<String, VElement> elements = new ConcurrentHashMap<String, VElement>();
     
     private final List<VLink> links = new ArrayList<VLink>();
@@ -231,6 +231,9 @@ final public class VMap extends DbMap {
     	return elements.get(getElementId(id, type));
     }
 
+    public VElement getElement(String elementid) {
+        return elements.get(elementid);
+    }
     /**
      * <p>Getter for the field <code>elements</code>.</p>
      *

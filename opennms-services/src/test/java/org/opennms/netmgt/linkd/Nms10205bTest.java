@@ -27,103 +27,49 @@
  *******************************************************************************/
 
 package org.opennms.netmgt.linkd;
-
+import static org.opennms.netmgt.nb.TestNetworkBuilder.BAGMANE_IP;
+import static org.opennms.netmgt.nb.TestNetworkBuilder.BAGMANE_NAME;
+import static org.opennms.netmgt.nb.TestNetworkBuilder.BAGMANE_SNMP_RESOURCE_B;
+import static org.opennms.netmgt.nb.TestNetworkBuilder.BANGALORE_IP;
+import static org.opennms.netmgt.nb.TestNetworkBuilder.BANGALORE_NAME;
+import static org.opennms.netmgt.nb.TestNetworkBuilder.BANGALORE_SNMP_RESOURCE_B;
+import static org.opennms.netmgt.nb.TestNetworkBuilder.DELHI_IP;
+import static org.opennms.netmgt.nb.TestNetworkBuilder.DELHI_NAME;
+import static org.opennms.netmgt.nb.TestNetworkBuilder.DELHI_SNMP_RESOURCE_B;
+import static org.opennms.netmgt.nb.TestNetworkBuilder.J6350_42_IP;
+import static org.opennms.netmgt.nb.TestNetworkBuilder.J6350_42_NAME;
+import static org.opennms.netmgt.nb.TestNetworkBuilder.J6350_42_SNMP_RESOURCE_B;
+import static org.opennms.netmgt.nb.TestNetworkBuilder.MUMBAI_IP;
+import static org.opennms.netmgt.nb.TestNetworkBuilder.MUMBAI_NAME;
+import static org.opennms.netmgt.nb.TestNetworkBuilder.MUMBAI_SNMP_RESOURCE_B;
+import static org.opennms.netmgt.nb.TestNetworkBuilder.MYSORE_IP;
+import static org.opennms.netmgt.nb.TestNetworkBuilder.MYSORE_NAME;
+import static org.opennms.netmgt.nb.TestNetworkBuilder.MYSORE_SNMP_RESOURCE_B;
+import static org.opennms.netmgt.nb.TestNetworkBuilder.SPACE_EX_SW1_IP;
+import static org.opennms.netmgt.nb.TestNetworkBuilder.SPACE_EX_SW1_NAME;
+import static org.opennms.netmgt.nb.TestNetworkBuilder.SPACE_EX_SW1_SNMP_RESOURCE_B;
+import static org.opennms.netmgt.nb.TestNetworkBuilder.SPACE_EX_SW2_IP;
+import static org.opennms.netmgt.nb.TestNetworkBuilder.SPACE_EX_SW2_NAME;
+import static org.opennms.netmgt.nb.TestNetworkBuilder.SPACE_EX_SW2_SNMP_RESOURCE_B;
+import static org.opennms.netmgt.nb.TestNetworkBuilder.SRX_100_IP;
+import static org.opennms.netmgt.nb.TestNetworkBuilder.SRX_100_NAME;
+import static org.opennms.netmgt.nb.TestNetworkBuilder.SRX_100_SNMP_RESOURCE_B;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.List;
-import java.util.Properties;
-
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.opennms.core.test.MockLogAppender;
-import org.opennms.core.test.OpenNMSJUnit4ClassRunner;
-import org.opennms.core.test.db.annotations.JUnitTemporaryDatabase;
 import org.opennms.core.test.snmp.annotations.JUnitSnmpAgent;
 import org.opennms.core.test.snmp.annotations.JUnitSnmpAgents;
-import org.opennms.core.utils.BeanUtils;
-import org.opennms.netmgt.config.LinkdConfig;
-import org.opennms.netmgt.config.LinkdConfigFactory;
 import org.opennms.netmgt.config.linkd.Package;
-import org.opennms.netmgt.dao.api.DataLinkInterfaceDao;
-import org.opennms.netmgt.dao.api.NodeDao;
-import org.opennms.netmgt.dao.api.SnmpInterfaceDao;
-import org.opennms.netmgt.linkd.nb.Nms10205bNetworkBuilder;
 import org.opennms.netmgt.model.DataLinkInterface;
+import org.opennms.netmgt.model.DataLinkInterface.DiscoveryProtocol;
 import org.opennms.netmgt.model.OnmsNode;
-import org.opennms.test.JUnitConfigurationEnvironment;
-import org.springframework.beans.factory.InitializingBean;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.Resource;
-import org.springframework.test.context.ContextConfiguration;
+import org.opennms.netmgt.nb.Nms10205bNetworkBuilder;
 
-@RunWith(OpenNMSJUnit4ClassRunner.class)
-@ContextConfiguration(locations= {
-        "classpath:/META-INF/opennms/applicationContext-soa.xml",
-        "classpath:/META-INF/opennms/applicationContext-dao.xml",
-        "classpath:/META-INF/opennms/applicationContext-daemon.xml",
-        "classpath:/META-INF/opennms/applicationContext-proxy-snmp.xml",
-        "classpath:/META-INF/opennms/mockEventIpcManager.xml",
-        "classpath:/META-INF/opennms/applicationContext-linkd.xml",
-        "classpath:/META-INF/opennms/applicationContext-linkdTest.xml",
-        "classpath:/META-INF/opennms/applicationContext-minimal-conf.xml"
-})
-@JUnitConfigurationEnvironment
-@JUnitTemporaryDatabase
-public class Nms10205bTest extends Nms10205bNetworkBuilder implements InitializingBean {
+public class Nms10205bTest extends LinkdTestBuilder {
 
-    @Autowired
-    private Linkd m_linkd;
-
-    private LinkdConfig m_linkdConfig;
-
-    @Autowired
-    private NodeDao m_nodeDao;
-    
-    @Autowired
-    private SnmpInterfaceDao m_snmpInterfaceDao;
-    
-    @Autowired
-    private DataLinkInterfaceDao m_dataLinkInterfaceDao;
-        
-    @Override
-    public void afterPropertiesSet() throws Exception {
-        BeanUtils.assertAutowiring(this);
-    }
-
-    @Before
-    public void setUp() throws Exception {
-        Properties p = new Properties();
-        p.setProperty("log4j.logger.org.hibernate.SQL", "WARN");
-        p.setProperty("log4j.logger.org.hibernate.cfg", "WARN");
-        p.setProperty("log4j.logger.org.springframework","WARN");
-        p.setProperty("log4j.logger.com.mchange.v2.resourcepool", "WARN");
-
-        MockLogAppender.setupLogging(p);
-
-        super.setNodeDao(m_nodeDao);
-        super.setSnmpInterfaceDao(m_snmpInterfaceDao);
-    }
-
-    @Before
-    public void setUpLinkdConfiguration() throws Exception {
-        LinkdConfigFactory.init();
-        final Resource config = new ClassPathResource("etc/linkd-configuration.xml");
-        final LinkdConfigFactory factory = new LinkdConfigFactory(-1L, config.getInputStream());
-        LinkdConfigFactory.setInstance(factory);
-        m_linkdConfig = LinkdConfigFactory.getInstance();
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        for (final OnmsNode node : m_nodeDao.findAll()) {
-            m_nodeDao.delete(node);
-        }
-        m_nodeDao.flush();
-    }
+	Nms10205bNetworkBuilder builder = new Nms10205bNetworkBuilder();
 
     /*
      * 
@@ -205,26 +151,26 @@ Address          Interface              State     ID               Pri  Dead
 */
     @Test
     @JUnitSnmpAgents(value={
-            @JUnitSnmpAgent(host=MUMBAI_IP, port=161, resource="classpath:linkd/nms10205b/"+MUMBAI_NAME+"_"+MUMBAI_IP+".txt"),
-            @JUnitSnmpAgent(host=DELHI_IP, port=161, resource="classpath:linkd/nms10205b/"+DELHI_NAME+"_"+DELHI_IP+".txt"),
-            @JUnitSnmpAgent(host=BANGALORE_IP, port=161, resource="classpath:linkd/nms10205b/"+BANGALORE_NAME+"_"+BANGALORE_IP+".txt"),
-            @JUnitSnmpAgent(host=BAGMANE_IP, port=161, resource="classpath:linkd/nms10205b/"+BAGMANE_NAME+"_"+BAGMANE_IP+".txt"),
-            @JUnitSnmpAgent(host=MYSORE_IP, port=161, resource="classpath:linkd/nms10205b/"+MYSORE_NAME+"_"+MYSORE_IP+".txt"),
-            @JUnitSnmpAgent(host=SPACE_EX_SW1_IP, port=161, resource="classpath:linkd/nms10205b/"+SPACE_EX_SW1_NAME+"_"+SPACE_EX_SW1_IP+".txt"),
-            @JUnitSnmpAgent(host=SPACE_EX_SW2_IP, port=161, resource="classpath:linkd/nms10205b/"+SPACE_EX_SW2_NAME+"_"+SPACE_EX_SW2_IP+".txt"),
-            @JUnitSnmpAgent(host=J6350_42_IP, port=161, resource="classpath:linkd/nms10205b/"+"J6350-42_"+J6350_42_IP+".txt"),
-            @JUnitSnmpAgent(host=SRX_100_IP, port=161, resource="classpath:linkd/nms10205b/"+"SRX-100_"+SRX_100_IP+".txt")
+            @JUnitSnmpAgent(host=MUMBAI_IP, port=161, resource=MUMBAI_SNMP_RESOURCE_B),
+            @JUnitSnmpAgent(host=DELHI_IP, port=161, resource=DELHI_SNMP_RESOURCE_B),
+            @JUnitSnmpAgent(host=BANGALORE_IP, port=161, resource=BANGALORE_SNMP_RESOURCE_B),
+            @JUnitSnmpAgent(host=BAGMANE_IP, port=161, resource=BAGMANE_SNMP_RESOURCE_B),
+            @JUnitSnmpAgent(host=MYSORE_IP, port=161, resource=MYSORE_SNMP_RESOURCE_B),
+            @JUnitSnmpAgent(host=SPACE_EX_SW1_IP, port=161, resource=SPACE_EX_SW1_SNMP_RESOURCE_B),
+            @JUnitSnmpAgent(host=SPACE_EX_SW2_IP, port=161, resource=SPACE_EX_SW2_SNMP_RESOURCE_B),
+            @JUnitSnmpAgent(host=J6350_42_IP, port=161, resource=J6350_42_SNMP_RESOURCE_B),
+            @JUnitSnmpAgent(host=SRX_100_IP, port=161, resource=SRX_100_SNMP_RESOURCE_B)
     })
     public void testNetwork10205bLinks() throws Exception {
-        m_nodeDao.save(getMumbai());
-        m_nodeDao.save(getDelhi());
-        m_nodeDao.save(getBangalore());
-        m_nodeDao.save(getBagmane());
-        m_nodeDao.save(getMysore());
-        m_nodeDao.save(getSpaceExSw1());
-        m_nodeDao.save(getSpaceExSw2());
-        m_nodeDao.save(getJ635042());
-        m_nodeDao.save(getSRX100());
+        m_nodeDao.save(builder.getMumbai());
+        m_nodeDao.save(builder.getDelhi());
+        m_nodeDao.save(builder.getBangalore());
+        m_nodeDao.save(builder.getBagmane());
+        m_nodeDao.save(builder.getMysore());
+        m_nodeDao.save(builder.getSpaceExSw1());
+        m_nodeDao.save(builder.getSpaceExSw2());
+        m_nodeDao.save(builder.getJ635042());
+        m_nodeDao.save(builder.getSRX100());
         m_nodeDao.flush();
 
         Package example1 = m_linkdConfig.getPackage("example1");
@@ -268,21 +214,22 @@ Address          Interface              State     ID               Pri  Dead
         assertTrue(m_linkd.runSingleLinkDiscovery("example1"));
 
         final List<DataLinkInterface> links = m_dataLinkInterfaceDao.findAll();
-        assertEquals(12, links.size());
+        assertEquals(27, links.size());
         
         /*
 
                 The topology layout:
 
-Parentnode     ParentInterface                  Node            Interface               LinkdStrategy           id
+Parentnode     ParentInterface (Ifindex)     Node            Interface         (IfIndex) LinkdStrategy           id
 
 Mumbai          ge-0/1/2.0      (519)  ----> Delhi             ge-1/0/2.0      (28503)  next hop router         800
 Mumbai          ge-0/0/1.0      (507)  ----> Bangalore         ge-0/0/0.0      (2401)   next hop router         801
 Mumbai          ge-0/0/2.0      (977)  ----> Bagmane           ge-1/0/0.0      (534)    next hop router         802
 Mumbai          ge-0/1/1.0      (978)  ----> Mysore            ge-0/0/1.0      (508)    next hop router         803
+Mumbai          ge-0/0/3.0      (508)  ----> Space_ex_sw2      me0.0           (34)    next hop router         803
 
 Delhi           ge-1/0/1.0     (3674)  ----> Bangalore         ge-0/0/1.0      (2397)   next hop router         804
-Delhi           ge-1/1/6.0     (17619) ----> Space_ex_sw1      ge-0/0/6.0      (528)    next hop router ****1   not saved
+Delhi           ge-1/1/6.0     (17619) ----> Space_ex_sw1      ge-0/0/6.0      (528)    next hop router ****1   OK
 Delhi           ge-1/1/6       (28520) ----> Space-EX-SW1      ge-0/0/6.0      (528)    lldp            ****1   805
 Delhi           ge-1/1/5       (28519) ----> Bagmane           ge-1/0/1        (513)    lldp                    811
 
@@ -290,16 +237,11 @@ Bangalore       ge-0/0/3.0     (2398)  ----> Space_ex_sw2      ge-0/0/3.0      (
 Bangalore       ge-0/1/0.0     (2396)  ----> Bagmane           ge-1/0/4.0      (1732)   next hop router         807
 
 Bagmane         ge-1/0/5.0      (654)  ----> Mysore            ge-0/1/1.0      (520)    next hop router         808
-Bagmane         ge-1/0/2        (514)  ----> J6350-2           ge-0/0/2.0      (549)    lldp            ****2   809
-Bagmane         ge-1/0/2.0      (540)  ----> J6350_42          ge-0/0/2.0      (549)    next hop router ****2   not saved
+Bagmane         ge-1/0/2        (514)  ----> J6350-42          ge-0/0/2.0      (549)    lldp            ****2   809
+Bagmane         ge-1/0/2.0      (540)  ----> J6350_42          ge-0/0/2.0      (549)    next hop router ****2   OK
 
 Space-EX-SW1    ge-0/0/0.0      (1361)  ----> Space-EX-SW2     ge-0/0/0.0      (531)    lldp            ****3   810
 Space_ex_sw1    ge-0/0/0.0      (1361)  ----> Space_ex_sw2     ge-0/0/0.0      (531)    next hop router ****3   810
-
-        Here you clearly see 15 links but globally linkd saves only 12 nodes.
-        The problem is that somewhere is stated that nodeid,ifindex must be unique.
-        This means that the links with * are overwritten. because the iproute strategy follows the 
-        lldp strategy then the route link is saved.
         
         Linkd is able to find the topology using the next hop router
         and lldp among the core nodes:
@@ -319,30 +261,88 @@ Space_ex_sw1    ge-0/0/0.0      (1361)  ----> Space_ex_sw2     ge-0/0/0.0      (
         int start = getStartPoint(links);
         for (final DataLinkInterface datalinkinterface: links) {
             int id = datalinkinterface.getId().intValue();
+
             if (start == id) {
+                checkLink(mumbai, delhi, 519, 28503, datalinkinterface);
+                assertEquals(DiscoveryProtocol.iproute, datalinkinterface.getProtocol());
+            } else if (start+12 == id ) {
                 checkLink(delhi, mumbai, 28503, 519, datalinkinterface);
+                assertEquals(DiscoveryProtocol.ospf, datalinkinterface.getProtocol());
             } else if (start+1 == id ) {
+                checkLink(mumbai,bangalore,507,2401,datalinkinterface);
+                assertEquals(DiscoveryProtocol.iproute, datalinkinterface.getProtocol());
+            } else if (start+13 == id ) {
                 checkLink(bangalore, mumbai, 2401, 507, datalinkinterface);
+                assertEquals(DiscoveryProtocol.ospf, datalinkinterface.getProtocol());
             } else if (start+2 == id ) {
-            	checkLink(bagmane, mumbai, 534, 977, datalinkinterface);
+                checkLink(mumbai, bagmane, 977, 534, datalinkinterface);
+                assertEquals(DiscoveryProtocol.iproute, datalinkinterface.getProtocol());
+            } else if (start+14 == id ) {
+                checkLink(bagmane, mumbai, 534, 977, datalinkinterface);
+                assertEquals(DiscoveryProtocol.ospf, datalinkinterface.getProtocol());
             } else if (start+3 == id ) {
-            	checkLink(mysore, mumbai, 508, 978, datalinkinterface);
+                assertEquals(DiscoveryProtocol.iproute, datalinkinterface.getProtocol());
+                checkLink(mumbai, mysore, 978, 508, datalinkinterface);
+            } else if (start+15 == id ) {
+                checkLink(mysore, mumbai, 508, 978, datalinkinterface);
+                assertEquals(DiscoveryProtocol.ospf, datalinkinterface.getProtocol());
             } else if (start+4 == id ) {
-            	checkLink(bangalore, delhi, 2397, 3674, datalinkinterface);
+                checkLink( delhi,bangalore, 3674, 2397, datalinkinterface);
+                assertEquals(DiscoveryProtocol.iproute, datalinkinterface.getProtocol());
+            } else if (start+16 == id ) {
+                checkLink(bangalore, delhi, 2397, 3674, datalinkinterface);
+                assertEquals(DiscoveryProtocol.ospf, datalinkinterface.getProtocol());
             } else if (start+5 == id ) {
-            	checkLink(spaceexsw1, delhi, 528, 28520, datalinkinterface);
+                checkLink(delhi, spaceexsw1,  17619,528, datalinkinterface);
+                assertEquals(DiscoveryProtocol.iproute, datalinkinterface.getProtocol());
+            } else if (start+17 == id ) {
+                checkLink(spaceexsw1, delhi, 528, 17619, datalinkinterface);
+                assertEquals(DiscoveryProtocol.ospf, datalinkinterface.getProtocol());
+            } else if (start+24 == id ) {
+                checkLink(spaceexsw1, delhi, 528, 28520, datalinkinterface);
+                assertEquals(DiscoveryProtocol.lldp, datalinkinterface.getProtocol());
             } else if (start+6 == id ) {
-            	checkLink(spaceexsw2, bangalore, 551, 2398, datalinkinterface);
+                checkLink(bangalore, spaceexsw2, 2398, 551, datalinkinterface);
+                assertEquals(DiscoveryProtocol.iproute, datalinkinterface.getProtocol());
+            } else if (start+19 == id ) {
+                checkLink(spaceexsw2, bangalore, 551, 2398, datalinkinterface);
+                assertEquals(DiscoveryProtocol.ospf, datalinkinterface.getProtocol());
             } else if (start+7 == id ) {
-            	checkLink(bagmane, bangalore, 1732, 2396, datalinkinterface);
+                checkLink(bangalore, bagmane, 2396, 1732, datalinkinterface);
+                assertEquals(DiscoveryProtocol.iproute, datalinkinterface.getProtocol());
+            } else if (start+18 == id ) {
+                checkLink(bagmane, bangalore, 1732, 2396, datalinkinterface);
+                assertEquals(DiscoveryProtocol.ospf, datalinkinterface.getProtocol());
             } else if (start+8 == id ) {
-            	checkLink(mysore, bagmane, 520, 654, datalinkinterface);
+                checkLink(bagmane , mysore, 654, 520, datalinkinterface);
+                assertEquals(DiscoveryProtocol.iproute, datalinkinterface.getProtocol());
+            } else if (start+20 == id ) {
+                checkLink(mysore, bagmane, 520, 654, datalinkinterface);
+                assertEquals(DiscoveryProtocol.ospf, datalinkinterface.getProtocol());
             } else if (start+9 == id ) {
-            	checkLink(j635042, bagmane, 549, 514, datalinkinterface);
+                checkLink(bagmane, j635042, 540, 549, datalinkinterface);
+                assertEquals(DiscoveryProtocol.iproute, datalinkinterface.getProtocol());
+            } else if (start+21 == id ) {
+                checkLink(j635042, bagmane, 549, 540 , datalinkinterface);
+                assertEquals(DiscoveryProtocol.ospf, datalinkinterface.getProtocol());
+            } else if (start+25 == id ) {
+                checkLink(j635042, bagmane, 549, 514, datalinkinterface);
+                assertEquals(DiscoveryProtocol.lldp, datalinkinterface.getProtocol());
             } else if (start+10 == id ) {
-            	checkLink(spaceexsw2, spaceexsw1, 531, 1361, datalinkinterface);
+                checkLink(spaceexsw1, spaceexsw2, 1361, 531, datalinkinterface);
+                assertEquals(DiscoveryProtocol.iproute, datalinkinterface.getProtocol());
+            } else if (start+22 == id ) {
+                checkLink(spaceexsw2, spaceexsw1, 531, 1361, datalinkinterface);
+                assertEquals(DiscoveryProtocol.ospf, datalinkinterface.getProtocol());
+            } else if (start+26 == id ) {
+                checkLink(spaceexsw2, spaceexsw1, 531, 1361, datalinkinterface);
+                assertEquals(DiscoveryProtocol.lldp, datalinkinterface.getProtocol());
             } else if (start+11 == id ) {
-            	checkLink(bagmane, delhi, 513, 28519, datalinkinterface);
+                checkLink(spaceexsw2, mumbai,  34,508, datalinkinterface);
+                assertEquals(DiscoveryProtocol.iproute, datalinkinterface.getProtocol());
+            } else if (start+23 == id ) {
+                checkLink(bagmane, delhi, 513, 28519, datalinkinterface);
+                assertEquals(DiscoveryProtocol.lldp, datalinkinterface.getProtocol());
             } else  {
             	checkLink(mumbai,mumbai,-1,-1,datalinkinterface);
             }
@@ -404,26 +404,26 @@ it has a link to Mysore that does not support LLDP
      */
     @Test
     @JUnitSnmpAgents(value={
-            @JUnitSnmpAgent(host=MUMBAI_IP, port=161, resource="classpath:linkd/nms10205b/"+MUMBAI_NAME+"_"+MUMBAI_IP+".txt"),
-            @JUnitSnmpAgent(host=DELHI_IP, port=161, resource="classpath:linkd/nms10205b/"+DELHI_NAME+"_"+DELHI_IP+".txt"),
-            @JUnitSnmpAgent(host=BANGALORE_IP, port=161, resource="classpath:linkd/nms10205b/"+BANGALORE_NAME+"_"+BANGALORE_IP+".txt"),
-            @JUnitSnmpAgent(host=BAGMANE_IP, port=161, resource="classpath:linkd/nms10205b/"+BAGMANE_NAME+"_"+BAGMANE_IP+".txt"),
-            @JUnitSnmpAgent(host=MYSORE_IP, port=161, resource="classpath:linkd/nms10205b/"+MYSORE_NAME+"_"+MYSORE_IP+".txt"),
-            @JUnitSnmpAgent(host=SPACE_EX_SW1_IP, port=161, resource="classpath:linkd/nms10205b/"+SPACE_EX_SW1_NAME+"_"+SPACE_EX_SW1_IP+".txt"),
-            @JUnitSnmpAgent(host=SPACE_EX_SW2_IP, port=161, resource="classpath:linkd/nms10205b/"+SPACE_EX_SW2_NAME+"_"+SPACE_EX_SW2_IP+".txt"),
-            @JUnitSnmpAgent(host=J6350_42_IP, port=161, resource="classpath:linkd/nms10205b/"+"J6350-42_"+J6350_42_IP+".txt"),
-            @JUnitSnmpAgent(host=SRX_100_IP, port=161, resource="classpath:linkd/nms10205b/"+"SRX-100_"+SRX_100_IP+".txt")
+            @JUnitSnmpAgent(host=MUMBAI_IP, port=161, resource=MUMBAI_SNMP_RESOURCE_B),
+            @JUnitSnmpAgent(host=DELHI_IP, port=161, resource=DELHI_SNMP_RESOURCE_B),
+            @JUnitSnmpAgent(host=BANGALORE_IP, port=161, resource=BANGALORE_SNMP_RESOURCE_B),
+            @JUnitSnmpAgent(host=BAGMANE_IP, port=161, resource=BAGMANE_SNMP_RESOURCE_B),
+            @JUnitSnmpAgent(host=MYSORE_IP, port=161, resource=MYSORE_SNMP_RESOURCE_B),
+            @JUnitSnmpAgent(host=SPACE_EX_SW1_IP, port=161, resource=SPACE_EX_SW1_SNMP_RESOURCE_B),
+            @JUnitSnmpAgent(host=SPACE_EX_SW2_IP, port=161, resource=SPACE_EX_SW2_SNMP_RESOURCE_B),
+            @JUnitSnmpAgent(host=J6350_42_IP, port=161, resource=J6350_42_SNMP_RESOURCE_B),
+            @JUnitSnmpAgent(host=SRX_100_IP, port=161, resource=SRX_100_SNMP_RESOURCE_B)
     })
     public void testNetwork10205bLldpLinks() throws Exception {
-        m_nodeDao.save(getMumbai());
-        m_nodeDao.save(getDelhi());
-        m_nodeDao.save(getBangalore());
-        m_nodeDao.save(getBagmane());
-        m_nodeDao.save(getMysore());
-        m_nodeDao.save(getSpaceExSw1());
-        m_nodeDao.save(getSpaceExSw2());
-        m_nodeDao.save(getJ635042());
-        m_nodeDao.save(getSRX100());
+        m_nodeDao.save(builder.getMumbai());
+        m_nodeDao.save(builder.getDelhi());
+        m_nodeDao.save(builder.getBangalore());
+        m_nodeDao.save(builder.getBagmane());
+        m_nodeDao.save(builder.getMysore());
+        m_nodeDao.save(builder.getSpaceExSw1());
+        m_nodeDao.save(builder.getSpaceExSw2());
+        m_nodeDao.save(builder.getJ635042());
+        m_nodeDao.save(builder.getSRX100());
         m_nodeDao.flush();
 
         Package example1 = m_linkdConfig.getPackage("example1");
@@ -431,6 +431,7 @@ it has a link to Mysore that does not support LLDP
         example1.setUseCdpDiscovery(false);
         example1.setUseIpRouteDiscovery(false);
         example1.setUseOspfDiscovery(false);
+        example1.setUseIsisDiscovery(false);
 
         example1.setSaveRouteTable(false);
         example1.setSaveStpInterfaceTable(false);
@@ -485,6 +486,7 @@ it has a link to Mysore that does not support LLDP
         int start = getStartPoint(links);
         for (final DataLinkInterface datalinkinterface: links) {
             int id = datalinkinterface.getId().intValue();
+            assertEquals(DiscoveryProtocol.lldp, datalinkinterface.getProtocol());
             if (start == id) {
             	checkLink(bagmane, delhi, 513, 28519, datalinkinterface);
             } else if (start+1 == id ) {
@@ -560,26 +562,26 @@ Address          Interface              State     ID               Pri  Dead
 */
     @Test
     @JUnitSnmpAgents(value={
-            @JUnitSnmpAgent(host=MUMBAI_IP, port=161, resource="classpath:linkd/nms10205b/"+MUMBAI_NAME+"_"+MUMBAI_IP+".txt"),
-            @JUnitSnmpAgent(host=DELHI_IP, port=161, resource="classpath:linkd/nms10205b/"+DELHI_NAME+"_"+DELHI_IP+".txt"),
-            @JUnitSnmpAgent(host=BANGALORE_IP, port=161, resource="classpath:linkd/nms10205b/"+BANGALORE_NAME+"_"+BANGALORE_IP+".txt"),
-            @JUnitSnmpAgent(host=BAGMANE_IP, port=161, resource="classpath:linkd/nms10205b/"+BAGMANE_NAME+"_"+BAGMANE_IP+".txt"),
-            @JUnitSnmpAgent(host=MYSORE_IP, port=161, resource="classpath:linkd/nms10205b/"+MYSORE_NAME+"_"+MYSORE_IP+".txt"),
-            @JUnitSnmpAgent(host=SPACE_EX_SW1_IP, port=161, resource="classpath:linkd/nms10205b/"+SPACE_EX_SW1_NAME+"_"+SPACE_EX_SW1_IP+".txt"),
-            @JUnitSnmpAgent(host=SPACE_EX_SW2_IP, port=161, resource="classpath:linkd/nms10205b/"+SPACE_EX_SW2_NAME+"_"+SPACE_EX_SW2_IP+".txt"),
-            @JUnitSnmpAgent(host=J6350_42_IP, port=161, resource="classpath:linkd/nms10205b/"+"J6350-42_"+J6350_42_IP+".txt"),
-            @JUnitSnmpAgent(host=SRX_100_IP, port=161, resource="classpath:linkd/nms10205b/"+"SRX-100_"+SRX_100_IP+".txt")
+            @JUnitSnmpAgent(host=MUMBAI_IP, port=161, resource=MUMBAI_SNMP_RESOURCE_B),
+            @JUnitSnmpAgent(host=DELHI_IP, port=161, resource=DELHI_SNMP_RESOURCE_B),
+            @JUnitSnmpAgent(host=BANGALORE_IP, port=161, resource=BANGALORE_SNMP_RESOURCE_B),
+            @JUnitSnmpAgent(host=BAGMANE_IP, port=161, resource=BAGMANE_SNMP_RESOURCE_B),
+            @JUnitSnmpAgent(host=MYSORE_IP, port=161, resource=MYSORE_SNMP_RESOURCE_B),
+            @JUnitSnmpAgent(host=SPACE_EX_SW1_IP, port=161, resource=SPACE_EX_SW1_SNMP_RESOURCE_B),
+            @JUnitSnmpAgent(host=SPACE_EX_SW2_IP, port=161, resource=SPACE_EX_SW2_SNMP_RESOURCE_B),
+            @JUnitSnmpAgent(host=J6350_42_IP, port=161, resource=J6350_42_SNMP_RESOURCE_B),
+            @JUnitSnmpAgent(host=SRX_100_IP, port=161, resource=SRX_100_SNMP_RESOURCE_B)
     })
     public void testNetwork10205bOspfLinks() throws Exception {
-        m_nodeDao.save(getMumbai());
-        m_nodeDao.save(getDelhi());
-        m_nodeDao.save(getBangalore());
-        m_nodeDao.save(getBagmane());
-        m_nodeDao.save(getMysore());
-        m_nodeDao.save(getSpaceExSw1());
-        m_nodeDao.save(getSpaceExSw2());
-        m_nodeDao.save(getJ635042());
-        m_nodeDao.save(getSRX100());
+        m_nodeDao.save(builder.getMumbai());
+        m_nodeDao.save(builder.getDelhi());
+        m_nodeDao.save(builder.getBangalore());
+        m_nodeDao.save(builder.getBagmane());
+        m_nodeDao.save(builder.getMysore());
+        m_nodeDao.save(builder.getSpaceExSw1());
+        m_nodeDao.save(builder.getSpaceExSw2());
+        m_nodeDao.save(builder.getJ635042());
+        m_nodeDao.save(builder.getSRX100());
         m_nodeDao.flush();
 
         Package example1 = m_linkdConfig.getPackage("example1");
@@ -589,6 +591,7 @@ Address          Interface              State     ID               Pri  Dead
         example1.setUseBridgeDiscovery(false);
         example1.setUseIpRouteDiscovery(false);
         example1.setUseOspfDiscovery(true);
+        example1.setUseIsisDiscovery(false);
 
         example1.setSaveStpInterfaceTable(false);
         example1.setSaveStpNodeTable(false);
@@ -659,6 +662,7 @@ Space_ex_sw1    ge-0/0/0.0      (1361)  ----> Space_ex_sw2     ge-0/0/0.0      (
         int start = getStartPoint(links);
         for (final DataLinkInterface datalinkinterface: links) {
             int id = datalinkinterface.getId().intValue();
+            assertEquals(DiscoveryProtocol.ospf, datalinkinterface.getProtocol());
             if (start == id ) {
                 checkLink(delhi, mumbai, 28503, 519, datalinkinterface);
             } else if (start+1 == id) {

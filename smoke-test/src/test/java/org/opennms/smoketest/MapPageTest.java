@@ -29,26 +29,23 @@
 package org.opennms.smoketest;
 
 import org.junit.Before;
+import org.junit.FixMethodOrder;
 import org.junit.Test;
+import org.junit.runners.MethodSorters;
 
-
-
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class MapPageTest extends OpenNMSSeleniumTestCase {
     @Before
     public void setUp() throws Exception {
     	super.setUp();
-        selenium.click("//a[@href='maps.htm']");
-        waitForPageToLoad();
-        selenium.click("//div[@id='content']//a[contains(@href,'map/index.jsp')]");
-        waitForPageToLoad();
+        clickAndWait("//a[@href='maps.htm']");
+        clickAndWait("//div[@id='content']//a[contains(@href,'map/index.jsp')]");
     }
 
     @Test
-    public void testMapPage() throws Exception {
-        assertTrue(selenium.isElementPresent("id=mainSvgDocument"));
-        assertTrue(selenium.isTextPresent("Network Topology Maps"));
-        selenium.click("link=Log out");
-        waitForPageToLoad();
+    public void a_testMapPage() throws Exception {
+        waitForElement("id=mainSvgDocument");
+        waitForText("Network Topology Maps");
     }
 
 }

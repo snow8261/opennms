@@ -34,7 +34,6 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
-
 import org.opennms.features.topology.api.AbstractCheckedOperation;
 import org.opennms.features.topology.api.CheckedOperation;
 import org.opennms.features.topology.api.GraphContainer;
@@ -52,7 +51,7 @@ public class TopologySelector {
 	private final Map<GraphProvider, ServiceRegistration<CheckedOperation>> m_registrations = new HashMap<GraphProvider, ServiceRegistration<CheckedOperation>>();
 	
     
-    private class TopologySelectorOperation extends AbstractCheckedOperation {
+    private static class TopologySelectorOperation extends AbstractCheckedOperation {
     	
     	private GraphProvider m_topologyProvider;
     	private Map<?,?> m_metaData;
@@ -75,13 +74,15 @@ public class TopologySelector {
     	
     	private void execute(GraphContainer container) {
     		LoggerFactory.getLogger(getClass()).debug("Active provider is: {}", m_topologyProvider);
-    		boolean redoLayout = true;
-    		if(container.getBaseTopology() == m_topologyProvider) {
-    		    redoLayout = false;
-    		}
-    		container.setBaseTopology(m_topologyProvider);
-    		
-    		if(redoLayout) { container.redoLayout(); }
+
+            // only change if provider changed
+    		if(!container.getBaseTopology().equals(m_topologyProvider)) {
+                container.setBaseTopology(m_topologyProvider);
+                container.clearCriteria(); // remove all criteria
+                container.setSemanticZoomLevel(1); // reset to 1
+                container.addCriteria(container.getBaseTopology().getDefaultCriteria());
+                container.redoLayout();
+            }
     	}
 
     	@Override

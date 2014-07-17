@@ -4,7 +4,7 @@
     <relativePath>../poms/compiled/</relativePath>
     <groupId>org.opennms.features.sms-reflector.build</groupId>
     <artifactId>compiled-bundle-settings</artifactId>
-    <version>1.13.0-SNAPSHOT</version>
+    <version>1.13.4-SNAPSHOT</version>
   </parent>
   <properties>
     <bundle.symbolicName>org.opennms.features.rxtx.test</bundle.symbolicName>
@@ -13,7 +13,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.opennms.features.sms-reflector</groupId>
   <artifactId>rxtx-commands</artifactId>
-  <name>${bundle.symbolicName}</name>
+  <name>OpenNMS Features SMS-Reflector RXTX Commands</name>
   <packaging>bundle</packaging>
   <dependencies>
     <!--
@@ -55,4 +55,15 @@
       <scope>provided</scope>
     </dependency>
   </dependencies>
+
+  <repositories>
+    <repository>
+      <snapshots><enabled>false</enabled></snapshots>
+      <releases><enabled>true</enabled></releases>
+      <id>opennms-repo</id>
+      <name>OpenNMS Repository</name>
+      <url>http://maven.opennms.org/content/groups/opennms.org-release</url>
+    </repository>
+  </repositories>
+
 </project>

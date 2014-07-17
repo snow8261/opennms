@@ -59,10 +59,11 @@ import com.jcraft.jsch.SftpException;
  * @author <a href="mailto:agalue@opennms.org">Alejandro Galue</a>
  */
 public class Sftp3gppUrlConnection extends SftpUrlConnection {
-	
-	private static final Logger LOG = LoggerFactory.getLogger(Sftp3gppUrlConnection.class);
 
+    /** The Constant LOG. */
+    private static final Logger LOG = LoggerFactory.getLogger(Sftp3gppUrlConnection.class);
 
+    /** The URL properties map. */
     private Map<String,String> m_urlProperties;
 
     /**
@@ -180,7 +181,7 @@ public class Sftp3gppUrlConnection extends SftpUrlConnection {
             m_urlProperties = new HashMap<String,String>();
             if (url.getQuery() != null) {
                 for (String pair : url.getQuery().split("&")) {
-                    String data[] = pair.split("=");
+                    String[] data = pair.split("=");
                     m_urlProperties.put(data[0].toLowerCase(), data[1]);
                 }
             }

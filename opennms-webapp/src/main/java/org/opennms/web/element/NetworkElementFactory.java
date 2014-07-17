@@ -29,6 +29,7 @@
 package org.opennms.web.element;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -46,9 +47,12 @@ import org.hibernate.FetchMode;
 import org.hibernate.criterion.MatchMode;
 import org.hibernate.criterion.Order;
 import org.hibernate.criterion.Restrictions;
+import org.opennms.core.criteria.Alias;
+import org.opennms.core.criteria.Alias.JoinType;
 import org.opennms.core.criteria.CriteriaBuilder;
 import org.opennms.core.criteria.restrictions.EqRestriction;
-import org.opennms.core.utils.BeanUtils;
+import org.opennms.core.criteria.restrictions.NeRestriction;
+import org.opennms.core.spring.BeanUtils;
 import org.opennms.core.utils.InetAddressComparator;
 import org.opennms.core.utils.InetAddressUtils;
 import org.opennms.netmgt.dao.api.CategoryDao;
@@ -83,10 +87,7 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionCallback;
-import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.context.support.WebApplicationContextUtils;
 
 /**
@@ -210,17 +211,15 @@ public class NetworkElementFactory implements InitializingBean, NetworkElementFa
 	 */
     @Override
     public OnmsNode getNode(int nodeId) {
-        OnmsCriteria criteria = new OnmsCriteria(OnmsNode.class);
-        criteria.add(Restrictions.eq("id",nodeId));
-        
-        List<OnmsNode> nodes = m_nodeDao.findMatching(criteria);
-        if(nodes.size() > 0 ) {
-            OnmsNode onmsNode = nodes.get(0);
-            return onmsNode;
-        }else {
-            return null;
-        }
+        return m_nodeDao.get(nodeId);
+    }
 
+    /* (non-Javadoc)
+     * @see org.opennms.web.element.NetworkElementFactoryInterface#getNode(string)
+     */
+    @Override
+    public OnmsNode getNode(String  lookupCriteria) {
+        return m_nodeDao.get(lookupCriteria);
     }
 
     /* (non-Javadoc)
@@ -1149,10 +1148,12 @@ public class NetworkElementFactory implements InitializingBean, NetworkElementFa
         //String sqlQuery = "SELECT * from vlan WHERE status != 'D' AND nodeid = ? order by vlanid;";
         //m_jdbcTemplate.query(sqlQuery, new VlanRowMapper(), nodeID);
         
-        final OnmsCriteria criteria = new OnmsCriteria(OnmsVlan.class);
-        criteria.createAlias("node", "node", OnmsCriteria.LEFT_JOIN);
-        criteria.add(Restrictions.eq("node.id", nodeID));
-        criteria.add(Restrictions.ne("status", StatusType.DELETED));
+        final org.opennms.core.criteria.Criteria criteria = new org.opennms.core.criteria.Criteria(OnmsVlan.class)
+            .setAliases(Arrays.asList(new Alias[] {
+                new Alias("node", "node", JoinType.LEFT_JOIN)
+            }))
+            .addRestriction(new EqRestriction("node.id", nodeID))
+            .addRestriction(new NeRestriction("status", StatusType.DELETED));
 
         List<Vlan> vlans = getVlans(m_vlanDao.findMatching(criteria));
         return vlans.toArray(new Vlan[vlans.size()]);
@@ -1256,13 +1257,15 @@ public class NetworkElementFactory implements InitializingBean, NetworkElementFa
     }
 
     private Integer getStpNodeFromStpRootIdentifier(String baseaddress) {
-    	
-        final OnmsCriteria criteria = new OnmsCriteria(OnmsStpNode.class);
-        criteria.add(Restrictions.eq("baseBridgeAddress", baseaddress.substring(5,16)));
 
-        List<OnmsStpNode> stpnodes = m_stpNodeDao.findMatching(criteria);
-        if (stpnodes.size() == 1)
-        	return stpnodes.get(0).getId();
+        if(!baseaddress.equals("")){
+            final OnmsCriteria criteria = new OnmsCriteria(OnmsStpNode.class);
+            criteria.add(Restrictions.eq("baseBridgeAddress", baseaddress.substring(5,16)));
+
+            List<OnmsStpNode> stpnodes = m_stpNodeDao.findMatching(criteria);
+            if (stpnodes.size() == 1)
+                return stpnodes.get(0).getId();
+        }
         return null;
     }
 
@@ -1335,25 +1338,9 @@ public class NetworkElementFactory implements InitializingBean, NetworkElementFa
     }
     
 
-
     /* (non-Javadoc)
-	 * @see org.opennms.web.element.NetworkElementFactoryInterface#getNodesWithCategories(org.springframework.transaction.support.TransactionTemplate, java.lang.String[], boolean)
-	 */
-    @Override
-    public List<OnmsNode> getNodesWithCategories(TransactionTemplate transTemplate, final String[] categories1, final boolean onlyNodesWithDownAggregateStatus) {
-        return transTemplate.execute(new TransactionCallback<List<OnmsNode>>() {
-
-            @Override
-            public List<OnmsNode> doInTransaction(TransactionStatus arg0) {
-                return getNodesWithCategories(categories1, onlyNodesWithDownAggregateStatus);
-            }
-            
-        });
-    }
-    
-    /* (non-Javadoc)
-	 * @see org.opennms.web.element.NetworkElementFactoryInterface#getNodesWithCategories(java.lang.String[], boolean)
-	 */
+     * @see org.opennms.web.element.NetworkElementFactoryInterface#getNodesWithCategories(java.lang.String[], boolean)
+     */
     @Override
     public List<OnmsNode> getNodesWithCategories(String[] categories, boolean onlyNodesWithDownAggregateStatus) {
         List<OnmsNode> ourNodes = getNodesInCategories(categories);
@@ -1381,23 +1368,8 @@ public class NetworkElementFactory implements InitializingBean, NetworkElementFa
     }
 
     /* (non-Javadoc)
-	 * @see org.opennms.web.element.NetworkElementFactoryInterface#getNodesWithCategories(org.springframework.transaction.support.TransactionTemplate, java.lang.String[], java.lang.String[], boolean)
-	 */
-    @Override
-    public List<OnmsNode> getNodesWithCategories(TransactionTemplate transTemplate, final String[] categories1, final String[] categories2, final boolean onlyNodesWithDownAggregateStatus) {
-        return transTemplate.execute(new TransactionCallback<List<OnmsNode>>() {
-
-            @Override
-            public List<OnmsNode> doInTransaction(TransactionStatus status) {
-                return getNodesWithCategories(categories1, categories2, onlyNodesWithDownAggregateStatus);
-            }
-            
-        });
-    }
-    
-    /* (non-Javadoc)
-	 * @see org.opennms.web.element.NetworkElementFactoryInterface#getNodesWithCategories(java.lang.String[], java.lang.String[], boolean)
-	 */
+     * @see org.opennms.web.element.NetworkElementFactoryInterface#getNodesWithCategories(java.lang.String[], java.lang.String[], boolean)
+     */
     @Override
     public List<OnmsNode> getNodesWithCategories(String[] categories1, String[] categories2, boolean onlyNodesWithDownAggregateStatus) {
         ArrayList<OnmsCategory> c1 = new ArrayList<OnmsCategory>(categories1.length);

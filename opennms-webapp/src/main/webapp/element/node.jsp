@@ -29,23 +29,30 @@
 
 --%>
 
+<%@page import="org.opennms.web.lldp.LldpElementFactory"%>
+<%@page import="org.opennms.web.lldp.LldpElementNode"%>
+<%@page import="org.opennms.web.ospf.OspfElementFactory"%>
+<%@page import="org.opennms.web.ospf.OspfElementNode"%>
 <%@page language="java"
 	contentType="text/html"
 	session="true"
 	import="
-        org.opennms.web.element.*,
-        org.opennms.netmgt.model.OnmsNode,
-		java.util.*,
-		java.net.*,
+        java.util.*,
+        java.net.*,
         java.sql.SQLException,
         org.opennms.core.soa.ServiceRegistry,
         org.opennms.core.utils.InetAddressUtils,
-        org.opennms.web.pathOutage.*,
-        org.opennms.web.springframework.security.Authentication,
-        org.opennms.web.svclayer.ResourceService,
+        org.opennms.netmgt.config.PollOutagesConfigFactory,
+        org.opennms.netmgt.config.poller.outages.Outage,
+        org.opennms.netmgt.model.OnmsNode,
+        org.opennms.netmgt.poller.PathOutageFactory,
+        org.opennms.web.api.Authentication,
         org.opennms.web.asset.Asset,
         org.opennms.web.asset.AssetModel,
+        org.opennms.web.element.*,
         org.opennms.web.navigate.*,
+        org.opennms.web.svclayer.ResourceService,
+        org.springframework.util.StringUtils,
         org.springframework.web.context.WebApplicationContext,
         org.springframework.web.context.support.WebApplicationContextUtils"
 %>
@@ -53,8 +60,7 @@
 <%@taglib uri="http://java.sun.com/jsp/jstl/functions" prefix="fn" %>
 
 
-<%!
-    private int m_telnetServiceId;
+<%!private int m_telnetServiceId;
     private int m_sshServiceId;
     private int m_httpServiceId;
     private int m_dellServiceId;
@@ -136,11 +142,10 @@
         map.put("text", linkText);
         map.put("url", linkPrefix + ip + linkSuffix);
         return Collections.singleton(map);
-    }
-%>
+    }%>
 
 <%
-    OnmsNode node_db = ElementUtil.getNodeByParams(request, getServletContext());
+	OnmsNode node_db = ElementUtil.getNodeByParams(request, getServletContext());
     int nodeId = node_db.getId();
     
     Map<String, Object> nodeModel = new TreeMap<String, Object>();
@@ -162,9 +167,14 @@
         nodeModel.put("statusSite", asset.getBuilding());
     }
     
-    nodeModel.put("resources", m_resourceService.findNodeChildResources(nodeId));
+    LldpElementNode lldp = LldpElementFactory.getInstance(getServletContext()).getLldpElement(nodeId);
+    nodeModel.put("lldp", lldp);
+    OspfElementNode ospf = OspfElementFactory.getInstance(getServletContext()).getOspfElement(nodeId);
+    nodeModel.put("ospf", ospf);
+    
+    nodeModel.put("resources", m_resourceService.findNodeChildResources(node_db));
     nodeModel.put("vlans", NetworkElementFactory.getInstance(getServletContext()).getVlansOnNode(nodeId));
-    nodeModel.put("criticalPath", PathOutageFactory.getCriticalPath(nodeId));
+    nodeModel.put("criticalPath", PathOutageFactory.getPrettyCriticalPath(nodeId));
     nodeModel.put("noCriticalPath", PathOutageFactory.NO_CRITICAL_PATH);
     nodeModel.put("admin", request.isUserInRole(Authentication.ROLE_ADMIN));
     
@@ -210,19 +220,38 @@
 	final Collection<ConditionalPageNavEntry> navLinks = registry.findProviders(ConditionalPageNavEntry.class, "(Page=node)");
 	for (final ConditionalPageNavEntry link : navLinks) {
 	    final DisplayStatus displayStatus = link.evaluate(request, node_db);
-	    switch(displayStatus) {
-		    case DISPLAY_NO_LINK:
-		        renderedLinks.add(link.getName());
-		        break;
-		    case DISPLAY_LINK:
-		        renderedLinks.add("<a href=\"" + link.getUrl().replace("%nodeid%", ""+nodeId) + "\">" + link.getName() + "</a>");
-		        break;
-		    case NO_DISPLAY:
-		        break;
+	    if (displayStatus == null) continue;
+	    if (displayStatus == DisplayStatus.DISPLAY_NO_LINK) {
+	        renderedLinks.add(link.getName());
+	    } else if (displayStatus == DisplayStatus.DISPLAY_LINK) {
+	        renderedLinks.add("<a href=\"" + link.getUrl().replace("%nodeid%", ""+nodeId) + "\">" + link.getName() + "</a>");
 	    }
 	}
 	
 	pageContext.setAttribute("navEntries", renderedLinks);
+
+    final List<String> schedOutages = new ArrayList<String>();
+    PollOutagesConfigFactory f = PollOutagesConfigFactory.getInstance();
+    for (final Outage outage : f.getOutages()) {
+        if (f.isCurTimeInOutage(outage)) {
+            boolean inOutage = f.isNodeIdInOutage(nodeId, outage);
+            if (!inOutage) {
+                for (final Interface i : intfs) {
+                    if (f.isInterfaceInOutage(i.getIpAddress(), outage)) {
+                        inOutage = true;
+                        break;
+                    }
+                }
+            }
+            if (inOutage) {
+                final String name = outage.getName();
+                final String link = "<a href=\"admin/sched-outages/editoutage.jsp?name=" + name + "\">" + name + "</a>";
+                schedOutages.add(request.isUserInRole(Authentication.ROLE_ADMIN) ? link : name);
+            }
+        }
+    }
+
+	pageContext.setAttribute("schedOutages", schedOutages.isEmpty() ? null : StringUtils.collectionToDelimitedString(schedOutages, ", "));
 %>
 
 <%@page import="org.opennms.core.resource.Vault"%>
@@ -235,6 +264,27 @@
   <jsp:param name="breadcrumb" value="Node" />
   <jsp:param name="enableExtJS" value="false"/>
 </jsp:include>
+
+<script type="text/javascript">
+function confirmAssetEdit() {
+  var confirmText = "You are about to edit asset fields for a node that was provisioned " +
+    "through a requisition. Any edits made here will be rolled back the next " +
+    "time the requisition \"${model.node.foreignSource}\" is " +
+    "synchronized (typically every 24 hours) or the node manually rescanned.\n\n" +
+    "To learn the best way to make permanent asset changes, talk to your " +
+    "OpenNMS administrator.";
+<c:if test="${model.foreignSource != null}">
+<% if (!request.isUserInRole(Authentication.ROLE_READONLY)) { %>
+    return confirm(confirmText);
+<% } else { %>
+    return true;
+<% } %>
+</c:if>
+<c:if test="${model.foreignSource == null}">
+  return true;
+</c:if>
+}
+</script>
 
 <div class="onms">
 <h2>Node: ${model.label} (ID: ${model.id})</h2>
@@ -271,7 +321,7 @@
       <c:param name="node" value="${model.id}"/>
     </c:url>
     <li class="o-menuitem">
-      <a href="<c:out value="${assetLink}"/>">Asset Info</a>
+      <a href="<c:out value="${assetLink}"/>" onclick="return confirmAssetEdit()">Asset Info</a>
     </li>
 
     <c:if test="${! empty model.statusSite}">
@@ -343,10 +393,22 @@
   </ul>
 </div>
 </div>
+
+<c:if test="${! empty schedOutages}">
+  <table class="o-box">
+    <tr class="CellStatus">
+      <td align="left" class="Critical">
+        <b>This node is currently affected by the following scheduled outages: </b> ${schedOutages}
+      </td>
+    </tr>
+  </table>
+</c:if>
+
 <% String showNodeStatusBar = System.getProperty("opennms.nodeStatusBar.show", "false");
    if (Boolean.parseBoolean(showNodeStatusBar)) { %>
 <jsp:include page="/includes/nodeStatus-box.jsp?nodeId=${model.id}" flush="false" />
 <% } %>
+
 <div class="TwoColLeft">
   
   
@@ -394,6 +456,56 @@
     </table>
   </c:if>
 
+  <!-- Lldp box, if info available --> 
+  <c:if test="${! empty model.lldp }">
+    <h3 class="o-box">Lldp Information</h3>
+    <table class="o-box">
+      <tr>
+        <th>chassis id</th>
+        <td>${model.lldp.lldpChassisIdString}</td>
+      </tr>
+      <tr>
+        <th>sysname</th>
+        <td>${model.lldp.lldpSysName}</td>
+      </tr>
+      <tr>
+        <th>create time</th>
+        <td>${model.lldp.lldpCreateTime}</td>
+      </tr>
+      <tr>
+        <th>last poll time</th>
+        <td>${model.lldp.lldpLastPollTime}</td>
+      </tr>
+    </table>
+  </c:if>
+
+  <!-- Ospf box, if info available --> 
+  <c:if test="${! empty model.ospf }">
+    <h3 class="o-box">Ospf Information</h3>
+    <table class="o-box">
+      <tr>
+        <th>Router Id</th>
+        <td>${model.ospf.ospfRouterId}</td>
+      </tr>
+      <tr>
+        <th>Version Number</th>
+        <td>${model.ospf.ospfVersionNumber}</td>
+      </tr>
+      <tr>
+        <th>Admin Status</th>
+        <td>${model.ospf.ospfAdminStat}</td>
+      </tr>
+      <tr>
+        <th>create time</th>
+        <td>${model.ospf.ospfCreateTime}</td>
+      </tr>
+      <tr>
+        <th>last poll time</th>
+        <td>${model.ospf.ospfLastPollTime}</td>
+      </tr>
+    </table>
+  </c:if>
+
   <!-- Critical Path info, if info available -->
   <c:if test="${model.criticalPath != model.noCriticalPath}">
     <h3 class="o-box">Path Outage - Critical Path</h3>
@@ -408,11 +520,14 @@
 	
 	<!-- Availability box -->
 	<c:if test="${fn:length( model.intfs ) < 10}">
-    <jsp:include page="/includes/nodeAvailability-box.jsp" flush="false" />
+    <jsp:include page="/includes/nodeAvailability-box.jsp" flush="false" >
+      <jsp:param name="node" value="${model.id}" />
+    </jsp:include>
     </c:if> 
-    <script type="text/javascript">
-        var nodeId = ${model.id}
-    </script>
+
+  <script type="text/javascript">
+    var nodeId = ${model.id}
+  </script>
   <div id="interface-panel-gwt">
     <h3 class="o-box">Node Interfaces</h3>
     <opennms:interfacelist id="gwtnodeList"></opennms:interfacelist>
@@ -493,7 +608,9 @@
   </div>
   
   <!-- Category box -->
-  <jsp:include page="/includes/nodeCategory-box.htm" flush="false" />
+  <jsp:include page="/includes/nodeCategory-box.htm" flush="false" >
+    <jsp:param name="node" value="${model.id}" />
+  </jsp:include>
   
   <!-- notification box -->
   <jsp:include page="/includes/notification-box.jsp" flush="false" >

@@ -33,10 +33,7 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
 import org.springframework.util.Assert;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.opennms.core.logging.Logging;
 import org.opennms.netmgt.EventConstants;
 import org.opennms.netmgt.config.reportd.Report;
@@ -121,7 +118,7 @@ public class Reportd implements SpringServiceDaemon {
      * @param report a {@link org.opennms.netmgt.config.reportd.Report} object.
      */
     public void runReport(Report report) {
-    	Map mdc = Logging.getCopyOfContextMap();
+    	Map<String,String> mdc = Logging.getCopyOfContextMap();
         try {
             Logging.putPrefix(NAME);
             LOG.debug("reportd -- running job {}", report.getReportName());
@@ -166,7 +163,7 @@ public class Reportd implements SpringServiceDaemon {
      */
     @EventHandler(uei = EventConstants.REPORTD_RUN_REPORT)
     public void handleRunReportEvent(Event e){
-       String reportName = new String();
+       String reportName = "";
        
        for(Parm parm : e.getParmCollection()){
        
@@ -178,7 +175,7 @@ public class Reportd implements SpringServiceDaemon {
                
            }
            
-           if (reportName != ""){
+           if (!"".equals(reportName)){
               LOG.debug("running report {}", reportName);
               runReport(reportName);
                
@@ -209,7 +206,11 @@ public class Reportd implements SpringServiceDaemon {
 
                 m_reportScheduler.rebuildReportSchedule();
 
-                LOG.debug("handleRelodConfigEvent: reports rescheduled.");
+                LOG.debug("handleReloadConfigEvent: reports rescheduled.");
+                
+                m_reportDeliveryService.reloadConfiguration();
+                
+                LOG.debug("handleReloadConfigEvent: Configuration reloaded for report delivery service {}", m_reportDeliveryService.getClass().getName());
 
                 ebldr = new EventBuilder(EventConstants.RELOAD_DAEMON_CONFIG_SUCCESSFUL_UEI, "Reportd");
                 ebldr.addParam(EventConstants.PARM_DAEMON_NAME, "Reportd");

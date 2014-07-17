@@ -51,9 +51,9 @@ import org.exolab.castor.xml.Marshaller;
 import org.exolab.castor.xml.ValidationException;
 import org.opennms.core.utils.WebSecurityUtils;
 import org.opennms.core.xml.CastorUtils;
-import org.opennms.netmgt.config.poller.BasicSchedule;
-import org.opennms.netmgt.config.poller.Outage;
-import org.opennms.netmgt.config.poller.Outages;
+import org.opennms.netmgt.config.poller.outages.BasicSchedule;
+import org.opennms.netmgt.config.poller.outages.Outage;
+import org.opennms.netmgt.config.poller.outages.Outages;
 
 /**
  * <p>ScheduleEditorServlet class.</p>
@@ -232,7 +232,7 @@ public class ScheduleEditorServlet extends HttpServlet {
         }
     }
     
-    class DisplayOp implements ScheduleOp {
+    static class DisplayOp implements ScheduleOp {
         @Override
         public String doOp(HttpServletRequest request, HttpServletResponse response, ScheduleMapping map) throws ServletException {
             // FIXME: schedMgr isn't used

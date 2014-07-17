@@ -29,56 +29,123 @@
 package org.opennms.web.rest;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.opennms.core.test.OpenNMSJUnit4ClassRunner;
+import org.opennms.core.test.db.annotations.JUnitTemporaryDatabase;
+import org.opennms.core.test.rest.AbstractSpringJerseyRestTestCase;
 import org.opennms.core.xml.JaxbUtils;
+import org.opennms.netmgt.config.UserManager;
+import org.opennms.netmgt.config.users.User;
+import org.opennms.netmgt.model.OnmsUser;
 import org.opennms.netmgt.model.OnmsUserList;
+import org.opennms.test.JUnitConfigurationEnvironment;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.web.WebAppConfiguration;
 
-public class UserRestServiceTest extends AbstractSpringJerseyRestTestCase {
+@RunWith(OpenNMSJUnit4ClassRunner.class)
+@WebAppConfiguration
+@ContextConfiguration(locations={
+        "classpath:/org/opennms/web/rest/applicationContext-test.xml",
+        "classpath:/META-INF/opennms/applicationContext-commonConfigs.xml",
+        "classpath:/META-INF/opennms/applicationContext-soa.xml",
+        "classpath:/META-INF/opennms/applicationContext-dao.xml",
+        "classpath*:/META-INF/opennms/component-service.xml",
+        "classpath*:/META-INF/opennms/component-dao.xml",
+        "classpath:/META-INF/opennms/applicationContext-reportingCore.xml",
+        "classpath:/META-INF/opennms/applicationContext-databasePopulator.xml",
+        "classpath:/org/opennms/web/svclayer/applicationContext-svclayer.xml",
+        "classpath:/META-INF/opennms/applicationContext-mockEventProxy.xml",
+        "classpath:/applicationContext-jersey-test.xml",
+        "classpath:/META-INF/opennms/applicationContext-reporting.xml",
+        "classpath:/META-INF/opennms/applicationContext-mock-usergroup.xml",
+        "classpath:/META-INF/opennms/applicationContext-minimal-conf.xml",
+        "file:src/main/webapp/WEB-INF/applicationContext-spring-security.xml",
+        "file:src/main/webapp/WEB-INF/applicationContext-jersey.xml"
+})
+@JUnitConfigurationEnvironment
+@JUnitTemporaryDatabase
+public class UserRestServiceTest extends AbstractSpringJerseyRestTestCase  {
+    private static final String PASSWORD = "21232F297A57A5A743894A0E4A801FC3";
+
+    @Override
+    public void beforeServletStart() throws Exception {
+        //MockLogAppender.setupLogging(true, "DEBUG");
+        setUser("admin");
+        addUserRole("ROLE_ADMIN");
+    }
 
     @Test
     public void testUser() throws Exception {
         String url = "/users";
 
-        // Testing GET Collection
+        // GET all users
         String xml = sendRequest(GET, url, 200);
         assertTrue(xml.contains("admin"));
         OnmsUserList list = JaxbUtils.unmarshal(OnmsUserList.class, xml);
         assertEquals(1, list.getUsers().size());
         assertEquals(xml, "admin", list.getUsers().get(0).getUsername());
 
+        // GET admin user
         xml = sendRequest(GET, url + "/admin", 200);
         assertTrue(xml.contains(">admin<"));
 
+        // GET invalid URL
         sendRequest(GET, url + "/idontexist", 404);
     }
-    
+
     @Test
     public void testWriteUser() throws Exception {
         createUser("test");
-        
+
+        // validate creation
         String xml = sendRequest(GET, "/users/test", 200);
         assertTrue(xml.contains("<user><user-id>test</user-id>"));
 
-        sendPut("/users/test", "password=MONKEYS", 303, "/users/test");
+        // change password and email
+        sendPut("/users/test", "password=MONKEYS&email=test@opennms.org", 303, "/users/test"); 
 
-        xml = sendRequest(GET, "/users/test", 200);
-        assertTrue(xml.contains(">MONKEYS<"));
+        // validate change of password
+        xml = sendRequest(GET, "/users/test", 200); 
+        OnmsUser testUser = JaxbUtils.unmarshal(OnmsUser.class,  xml);
+        // ... but in xml-file
+        User castorUser = getWebAppContext().getBean(UserManager.class).getUser("test");
+        assertEquals(castorUser.getPassword().getContent(), "MONKEYS");
+
+        // validate change of email
+        assertEquals("test@opennms.org", testUser.getEmail());
+    }
+
+    @Test
+    public void testWriteUserWithEmail() throws Exception {
+        createUser("test123", "test123@opennms.org");
+
+        // validate creation
+        String xml = sendRequest(GET, "/users/test123", 200);
+        assertNotNull(xml);
+        OnmsUser testUser = JaxbUtils.unmarshal(OnmsUser.class,  xml);
+        assertNotNull(testUser);
+        assertEquals("test123", testUser.getUsername());
+        assertEquals("test123@opennms.org", testUser.getEmail());
     }
 
     @Test
     public void testWriteALotOfUsers() throws Exception {
-        int userCount = 40;
+        int userCount = 50;
 
-        ExecutorService pool = Executors.newCachedThreadPool();
+        // Limit the thread pool so that we don't exhaust all of the database connections
+        ExecutorService pool = Executors.newFixedThreadPool(25);
         List<Future<?>> createFutures = new ArrayList<Future<?>>();
         for (int i = 0; i < userCount; i++) {
             final String userName = "test" + i;
@@ -86,7 +153,7 @@ public class UserRestServiceTest extends AbstractSpringJerseyRestTestCase {
                 @Override
                 public void run() {
                     try {
-                        createUser(userName);
+                        createUser(userName, userName + "@opennms.org");
                     } catch (Exception e) {
                         e.printStackTrace();
                         fail(e.getMessage());
@@ -100,44 +167,116 @@ public class UserRestServiceTest extends AbstractSpringJerseyRestTestCase {
             future.get();
         }
 
-        sendRequest(GET, "/users", 200);
+        // validate list
+        OnmsUserList users = JaxbUtils.unmarshal(OnmsUserList.class,  sendRequest(GET, "/users", 200));
+        assertNotNull(users);
+        assertEquals(userCount + 1, users.size()); //+1 because user "admin" is there before creating all the new users.
 
         // Try changing the password for every user to make sure that they
         // are properly accessible in the UserManager
         for (int i = 0; i < userCount; i++) {
+            // validate each created user
             String xml = sendRequest(GET, "/users/test" + i, 200);
-            assertTrue(xml.contains(String.format("<user><user-id>test%d</user-id>", i)));
+            OnmsUser eachUser = JaxbUtils.unmarshal(OnmsUser.class, xml);
+            assertEquals("test" + i, eachUser.getUsername());
+            assertEquals("test" + i + " Full Name", eachUser.getFullName());
+            assertEquals("test" + i + "@opennms.org", eachUser.getEmail());
+            assertEquals("Autogenerated by a unit test...", eachUser.getComments());
 
-            sendPut("/users/test" + i, "password=MONKEYS", 303, "/users/test" + i);
+            // change
+            sendPut("/users/test" + i, "password=MONKEYS&email=TEST@OPENNMS.COM", 303, "/users/test" + i);
 
-            xml = sendRequest(GET, "/users/test" + i, 200);
-            assertTrue(xml.contains(">MONKEYS<"));
+            // validate change of password
+            eachUser = JaxbUtils.unmarshal(OnmsUser.class, sendRequest(GET, "/users/test" + i, 200));
+            User castorUser = getWebAppContext().getBean(UserManager.class).getUser("test" + i);
+            assertEquals(castorUser.getPassword().getContent(), "MONKEYS");
+
+            // validate change of email
+            assertEquals("TEST@OPENNMS.COM", eachUser.getEmail());
         }
     }
 
     @Test
     public void testDeleteUser() throws Exception {
         createUser("deleteMe");
-        
+
         String xml = sendRequest(GET, "/users", 200);
         assertTrue(xml.contains("deleteMe"));
 
         sendRequest(DELETE, "/users/idontexist", 400);
-        
+
         sendRequest(DELETE, "/users/deleteMe", 200);
 
         sendRequest(GET, "/users/deleteMe", 404);
     }
 
+    @Test
+    public void testGetUserWithoutAuth() throws Exception {
+        clearUserInfo();
+        setUser("foo");
+        addUserRole("ROLE_USER");
+
+        createUser("foo");
+        createUser("bar");
+
+        String xml = sendRequest(GET, "/users", 200);
+        assertTrue(xml.contains("foo"));
+        assertTrue(xml.contains("bar"));
+        OnmsUserList users = JaxbUtils.unmarshal(OnmsUserList.class, xml);
+        assertEquals(3, users.size());
+        assertEquals("xxxxxxxx", users.get(0).getPassword());
+        assertEquals("xxxxxxxx", users.get(1).getPassword());
+        assertEquals(PASSWORD, users.get(2).getPassword());
+
+        setUser("bar");
+        xml = sendRequest(GET, "/users", 200);
+        assertTrue(xml.contains("foo"));
+        assertTrue(xml.contains("bar"));
+        users = JaxbUtils.unmarshal(OnmsUserList.class, xml);
+        assertEquals(3, users.size());
+        assertEquals("xxxxxxxx", users.get(0).getPassword());
+        assertEquals(PASSWORD, users.get(1).getPassword());
+        assertEquals("xxxxxxxx", users.get(2).getPassword());
+
+        clearUserInfo();
+        setUser("admin");
+        addUserRole("ROLE_ADMIN");
+        xml = sendRequest(GET, "/users", 200);
+        assertTrue(xml.contains("foo"));
+        assertTrue(xml.contains("bar"));
+        users = JaxbUtils.unmarshal(OnmsUserList.class, xml);
+        assertEquals(3, users.size());
+        assertEquals(PASSWORD, users.get(0).getPassword());
+        assertEquals(PASSWORD, users.get(1).getPassword());
+        assertEquals(PASSWORD, users.get(2).getPassword());
+    }
+
     protected void createUser(final String username) throws Exception {
-        String user = "<user>" +
+        createUser(username, null);
+    }
+
+    protected void createUser(final String username, final String email) throws Exception {
+        final String previousUser = getUser();
+        final Collection<String> previousRoles = getUserRoles();
+
+        clearUserInfo();
+        setUser("admin");
+        addUserRole("ROLE_ADMIN");
+
+        String userXml = "<user>" +
                 "<user-id>" + username + "</user-id>" +
                 "<full-name>" + username + " Full Name</full-name>" +
+                "{EMAIL}" + 
                 "<user-comments>Autogenerated by a unit test...</user-comments>" +
-                "<password>21232F297A57A5A743894A0E4A801FC3</password>" +
+                "<password>" + PASSWORD + "</password>" +
                 "</user>";
-        sendPost("/users", user, 303, "/users/" + username);
-    }
-    
+        userXml = userXml.replace("{EMAIL}", email != null ?  "<email>" + email + "</email>": "");
+        sendPost("/users", userXml, 303, "/users/" + username);
 
+        clearUserInfo();
+        setUser(previousUser);
+        for (final String role : previousRoles) {
+            addUserRole(role);
+        }
+    }
 }

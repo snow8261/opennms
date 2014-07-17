@@ -51,12 +51,12 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.opennms.core.concurrent.WaterfallExecutor;
+import org.opennms.core.spring.BeanUtils;
 import org.opennms.core.test.ConfigurationTestUtils;
 import org.opennms.core.test.MockLogAppender;
 import org.opennms.core.test.OpenNMSJUnit4ClassRunner;
 import org.opennms.core.test.db.MockDatabase;
 import org.opennms.core.test.db.annotations.JUnitTemporaryDatabase;
-import org.opennms.core.utils.BeanUtils;
 import org.opennms.netmgt.config.SyslogdConfig;
 import org.opennms.netmgt.config.SyslogdConfigFactory;
 import org.opennms.netmgt.config.syslogd.UeiMatch;
@@ -246,7 +246,7 @@ public class SyslogdTest implements InitializingBean {
             //Failures are for weenies
         }
 
-        ea.verifyAnticipated(5000, 0, 0, 0, 0);
+        ea.verifyAnticipated(10000, 0, 0, 0, 0);
     }
 
     @Test

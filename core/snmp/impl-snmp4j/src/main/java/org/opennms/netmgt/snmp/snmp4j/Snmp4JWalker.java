@@ -130,27 +130,33 @@ public class Snmp4JWalker extends SnmpWalker {
     }
 
     /**
-     * TODO: Merge this logic with {@link Snmp4JStrategy#processResponse()}
+     * TODO: Merge this logic with {@link org.opennms.netmgt.snmp.snmp4j.Snmp4JStrategy} processResponse()
      */
     public class Snmp4JResponseListener implements ResponseListener {
 
-        private void processResponse(PDU response) {
+        private void processResponse(final PDU response) {
             try {
                 LOG.debug("Received a tracker PDU of type {} from {} of size {}, errorStatus = {}, errorStatusText = {}, errorIndex = {}", PDU.getTypeString(response.getType()), getAddress(), response.size(), response.getErrorStatus(), response.getErrorStatusText(), response.getErrorIndex());
                 if (response.getType() == PDU.REPORT) {
                     handleAuthError("A REPORT PDU was returned from the agent.  This is most likely an authentication problem.  Please check the config");
                 } else {
                     if (!processErrors(response.getErrorStatus(), response.getErrorIndex())) {
-                        for (int i = 0; i < response.size(); i++) {
-                            VariableBinding vb = response.get(i);
-                            SnmpObjId receivedOid = SnmpObjId.get(vb.getOid().getValue());
-                            SnmpValue val = new Snmp4JValue(vb.getVariable());
-                            Snmp4JWalker.this.processResponse(receivedOid, val);
+                        if (response.size() == 0) { // NMS-6484
+                            handleError("A PDU with no errors and 0 varbinds was returned from the agent at " + getAddress() + ". This seems to be related with a broken SNMP agent.");
+                        } else {
+                            for (int i = 0; i < response.size(); i++) {
+                                final VariableBinding vb = response.get(i);
+                                final SnmpObjId receivedOid = SnmpObjId.get(vb.getOid().getValue());
+                                final SnmpValue val = new Snmp4JValue(vb.getVariable());
+                                Snmp4JWalker.this.processResponse(receivedOid, val);
+                            }
                         }
                     }
                     buildAndSendNextPdu();
                 }
-            } catch (Throwable e) {
+            } catch (final IOException e) {
+                handleFatalError(e);
+            } catch (final RuntimeException e) {
                 handleFatalError(e);
             }
         }
@@ -196,7 +202,7 @@ public class Snmp4JWalker extends SnmpWalker {
         @Override
     public void start() {
         
-        LOG.info("Walking {} for {} using version {} with config: {}", getName(), getAddress(), m_agentConfig.getVersionString(), m_agentConfig);
+        LOG.debug("Walking {} for {} using version {} with config: {}", getName(), getAddress(), m_agentConfig.getVersionString(), m_agentConfig);
             
         super.start();
     }
@@ -224,8 +230,8 @@ public class Snmp4JWalker extends SnmpWalker {
         return m_tgt.getVersion();
     }
 
-        @Override
-    protected void close() throws IOException {
+    @Override
+    public void close() throws IOException {
         if (m_session != null) {
             m_session.close();
             m_session = null;

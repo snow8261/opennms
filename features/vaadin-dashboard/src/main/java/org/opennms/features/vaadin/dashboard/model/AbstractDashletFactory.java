@@ -31,6 +31,7 @@ import com.vaadin.shared.ui.label.ContentMode;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.VerticalLayout;
+import org.opennms.features.vaadin.dashboard.config.ui.PropertiesWindow;
 
 import java.util.Map;
 import java.util.TreeMap;
@@ -53,6 +54,15 @@ public abstract class AbstractDashletFactory implements DashletFactory {
      * A map holding the required parameter descriptions for the {@link Dashlet}
      */
     protected Map<String, String> m_requiredParameterDescriptions = new TreeMap<String, String>();
+
+    /**
+     * boostable flag
+     */
+    protected boolean m_boostable = true;
+    /**
+     * Are this dashlet suitable for displaying in the dashboard view.
+     */
+    protected boolean m_dashboardSuitable = false;
 
     /**
      * Constructor for instantiating a new factory.
@@ -121,7 +131,7 @@ public abstract class AbstractDashletFactory implements DashletFactory {
      * @param requiredParameters the parameter {@link Map} to be set
      */
     public void setRequiredParameters(Map<String, String> requiredParameters) {
-        m_requiredParameters = requiredParameters;
+        m_requiredParameters = new TreeMap<String, String>(requiredParameters);
     }
 
     /**
@@ -131,6 +141,36 @@ public abstract class AbstractDashletFactory implements DashletFactory {
      */
     public void setRequiredParameterDescriptions(Map<String, String> requiredParameterDescriptions) {
         m_requiredParameterDescriptions = requiredParameterDescriptions;
+    }
+
+    /**
+     * This method sets the boostable flag.
+     */
+    public void setBoostable(boolean boostable) {
+        m_boostable = boostable;
+    }
+
+    /**
+     * This method sets whether this dashlet is suitable for displaying in the dashboard view.
+     */
+    public void setDashboardSuitable(boolean dashletSuitable) {
+        m_dashboardSuitable = dashletSuitable;
+    }
+
+    /**
+     * Returns whether this dashlet is suitable for displaying in the dashboard view.
+     *
+     * @return true if suitable, false otherwise
+     */
+    public boolean isSuitableForDashboard() {
+        return m_dashboardSuitable;
+    }
+
+    /**
+     * This method returns whether this dashlet is boostable.
+     */
+    public boolean isBoostable() {
+        return m_boostable;
     }
 
     /**
@@ -193,7 +233,14 @@ public abstract class AbstractDashletFactory implements DashletFactory {
         for (Map.Entry<String, String> entry : m_requiredParameters.entrySet()) {
             stringBuilder.append("<tr>");
             stringBuilder.append("<td class='help-table-cell'>" + entry.getKey() + "</td>");
-            stringBuilder.append("<td class='help-table-cell'>'" + entry.getValue() + "'</td>");
+
+            String value = entry.getValue();
+
+            if (value.length() > 20) {
+                value = value.substring(0, 19) + "...";
+            }
+
+            stringBuilder.append("<td class='help-table-cell'>'" + value + "'</td>");
 
             if (getRequiredParameterDescriptions().containsKey(entry.getKey())) {
                 stringBuilder.append("<td class='help-table-cell'>" + getRequiredParameterDescriptions().get(entry.getKey()) + "</td>");
@@ -206,5 +253,15 @@ public abstract class AbstractDashletFactory implements DashletFactory {
         stringBuilder.append("</table>");
 
         return stringBuilder.toString();
+    }
+
+    /**
+     * Returns the window used for configuring a {@link DashletSpec} instance.
+     *
+     * @param dashletSpec the {@link DashletSpec} instance
+     * @return the {@link DashletConfigurationWindow}
+     */
+    public DashletConfigurationWindow configurationWindow(DashletSpec dashletSpec) {
+        return new PropertiesWindow(dashletSpec, this);
     }
 }

@@ -44,10 +44,10 @@ import org.apache.bsf.util.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.opennms.core.utils.ParameterMap;
-import org.opennms.netmgt.model.PollStatus;
 import org.opennms.netmgt.poller.Distributable;
 import org.opennms.netmgt.poller.DistributionContext;
 import org.opennms.netmgt.poller.MonitoredService;
+import org.opennms.netmgt.poller.PollStatus;
 
 
 
@@ -145,7 +145,7 @@ public class BSFMonitor extends AbstractServiceMonitor {
         String fileName = ParameterMap.getKeyedString(map,"file-name", null);
         String lang = ParameterMap.getKeyedString(map, "lang-class", null);
         String langEngine = ParameterMap.getKeyedString(map, "bsf-engine", null);
-        String langExtensions[] = ParameterMap.getKeyedString(map, "file-extensions", "").split(",");
+        String[] langExtensions = ParameterMap.getKeyedString(map, "file-extensions", "").split(",");
         String runType = ParameterMap.getKeyedString(map, "run-type", "eval");
         File file = new File(fileName);
 

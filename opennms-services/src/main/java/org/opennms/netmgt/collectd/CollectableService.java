@@ -29,20 +29,28 @@
 package org.opennms.netmgt.collectd;
 
 import java.io.File;
-import java.util.Map;
 
+import org.opennms.core.logging.Logging;
 import org.opennms.core.utils.InetAddressUtils;
 import org.opennms.netmgt.EventConstants;
 import org.opennms.netmgt.collectd.Collectd.SchedulingCompletedFlag;
+import org.opennms.netmgt.collection.api.CollectionAgent;
+import org.opennms.netmgt.collection.api.CollectionException;
+import org.opennms.netmgt.collection.api.CollectionInitializationException;
+import org.opennms.netmgt.collection.api.CollectionSet;
+import org.opennms.netmgt.collection.api.ServiceCollector;
+import org.opennms.netmgt.collection.api.ServiceParameters;
+import org.opennms.netmgt.collection.persistence.rrd.BasePersister;
+import org.opennms.netmgt.collection.persistence.rrd.GroupPersister;
+import org.opennms.netmgt.collection.persistence.rrd.OneToOnePersister;
+import org.opennms.netmgt.config.CollectdConfigFactory;
 import org.opennms.netmgt.config.DataCollectionConfigFactory;
-import org.opennms.netmgt.config.collector.CollectionSet;
-import org.opennms.netmgt.config.collector.ServiceParameters;
-import org.opennms.netmgt.dao.api.CollectorConfigDao;
 import org.opennms.netmgt.dao.api.IpInterfaceDao;
-import org.opennms.netmgt.eventd.EventIpcManagerFactory;
 import org.opennms.netmgt.model.OnmsIpInterface;
-import org.opennms.netmgt.model.RrdRepository;
+import org.opennms.netmgt.model.ResourceTypeUtils;
 import org.opennms.netmgt.model.events.EventBuilder;
+import org.opennms.netmgt.model.events.EventIpcManagerFactory;
+import org.opennms.netmgt.rrd.RrdRepository;
 import org.opennms.netmgt.scheduler.ReadyRunnable;
 import org.opennms.netmgt.scheduler.Scheduler;
 import org.opennms.netmgt.threshd.ThresholdingVisitor;
@@ -110,6 +118,7 @@ final class CollectableService implements ReadyRunnable {
     private final ServiceParameters m_params;
     
     private final RrdRepository m_repository;
+
     /**
      * Constructs a new instance of a CollectableService object.
      *
@@ -138,12 +147,10 @@ final class CollectableService implements ReadyRunnable {
         
         m_spec.initialize(m_agent);
         
-        Map<String, Object> roProps=m_spec.getReadOnlyPropertyMap();
-        m_params=new ServiceParameters(roProps);
+        m_params=new ServiceParameters(m_spec.getReadOnlyPropertyMap());
         m_repository=m_spec.getRrdRepository(m_params.getCollectionName());
-        
-        m_thresholdVisitor = ThresholdingVisitor.create(m_nodeId, getHostAddress(), m_spec.getServiceName(), m_repository,  roProps);
 
+        m_thresholdVisitor = ThresholdingVisitor.create(m_nodeId, getHostAddress(), m_spec.getServiceName(), m_repository,  m_params);
     }
     
     /**
@@ -204,9 +211,9 @@ final class CollectableService implements ReadyRunnable {
 	 * Uses the existing package name to try and re-obtain the package from the collectd config factory.
 	 * Should be called when the collect config has been reloaded.
 	 *
-	 * @param collectorConfigDao a {@link org.opennms.netmgt.dao.api.CollectorConfigDao} object.
+	 * @param collectorConfigDao a {@link org.opennms.netmgt.config.CollectdConfigFactory} object.
 	 */
-	public void refreshPackage(CollectorConfigDao collectorConfigDao) {
+	public void refreshPackage(CollectdConfigFactory collectorConfigDao) {
 		m_spec.refresh(collectorConfigDao);
 		if (m_thresholdVisitor != null)
 		    m_thresholdVisitor.reloadScheduledOutages();
@@ -255,7 +262,7 @@ final class CollectableService implements ReadyRunnable {
     private void sendEvent(String uei, String reason) {
         EventBuilder builder = new EventBuilder(uei, "OpenNMS.Collectd");
         builder.setNodeid(m_nodeId);
-        builder.setInterface(m_agent.getInetAddress());
+        builder.setInterface(m_agent.getAddress());
         builder.setService(m_spec.getServiceName());
         builder.setHost(InetAddressUtils.getLocalHostName());
         
@@ -286,6 +293,17 @@ final class CollectableService implements ReadyRunnable {
      */
     @Override
     public void run() {
+        Logging.withPrefix(Collectd.LOG4J_CATEGORY, new Runnable() {
+
+            @Override
+            public void run() {
+                doRun();
+            }
+            
+        });
+    }
+
+    private void doRun() {
         // Process any outstanding updates.
         if (processUpdates() == ABORT_COLLECTION) {
             LOG.debug("run: Aborting because processUpdates returned ABORT_COLLECTION (probably marked for deletion) for {}", this);
@@ -303,12 +321,14 @@ final class CollectableService implements ReadyRunnable {
             try {
                 doCollection();
                 updateStatus(ServiceCollector.COLLECTION_SUCCEEDED, null);
+            } catch (CollectionTimedOut e) {
+                LOG.info(e.getMessage());
+                updateStatus(ServiceCollector.COLLECTION_FAILED, e);
+            } catch (CollectionWarning e) {
+                LOG.warn(e.getMessage(), e);
+                updateStatus(ServiceCollector.COLLECTION_FAILED, e);
             } catch (CollectionException e) {
-                if (e instanceof CollectionWarning) {
-                    LOG.warn(e.getMessage(), e);
-                } else {
-                    LOG.error(e.getMessage(), e);
-                }
+                LOG.error(e.getMessage(), e);
                 updateStatus(ServiceCollector.COLLECTION_FAILED, e);
             } catch (Throwable e) {
                 LOG.error(e.getMessage(), e);
@@ -350,8 +370,8 @@ final class CollectableService implements ReadyRunnable {
         m_status = status;
     }
 
-        private BasePersister createPersister(ServiceParameters params, RrdRepository repository) {
-            if (Boolean.getBoolean("org.opennms.rrd.storeByGroup")) {
+        private static BasePersister createPersister(ServiceParameters params, RrdRepository repository) {
+            if (ResourceTypeUtils.isStoreByGroup()) {
                 return new GroupPersister(params, repository);
             } else {
                 return new OneToOnePersister(params, repository);
@@ -367,13 +387,13 @@ final class CollectableService implements ReadyRunnable {
 		try {
 		    result = m_spec.collect(m_agent);
 		    if (result != null) {
-                        Collectd.instrumentation().beginPersistingServiceData(m_nodeId, getHostAddress(), m_spec.getServiceName());
+                        Collectd.instrumentation().beginPersistingServiceData(m_spec.getPackageName(), m_nodeId, getHostAddress(), m_spec.getServiceName());
                         try {
                             BasePersister persister = createPersister(m_params, m_repository);
                             persister.setIgnorePersist(result.ignorePersist());
                             result.visit(persister);
                         } finally {
-                            Collectd.instrumentation().endPersistingServiceData(m_nodeId, getHostAddress(), m_spec.getServiceName());
+                            Collectd.instrumentation().endPersistingServiceData(m_spec.getPackageName(), m_nodeId, getHostAddress(), m_spec.getServiceName());
                         }
                         
                         /*
@@ -564,6 +584,19 @@ final class CollectableService implements ReadyRunnable {
 
     /**
      * <p>reinitializeThresholding</p>
+     */
+    /*
+     * TODO Re-create or merge ?
+     * 
+     * The reason of doing a merge is to keep and update the threshold states.
+     * 
+     * It is extremely more easy to just recreate the thresholding visitor to avoid complex
+     * operations. But, the cost of doing this is that all the states will be lost, and
+     * some alarms will become orphans.
+     * 
+     * Other idea is to create two methods to get and set the states, and detect orphan
+     * states. That way, we can decide what to do with orphans (like clear the alarm, or
+     * send an auto-rearm), and also it can be used to persist the states across restarts.
      */
     public void reinitializeThresholding() {
         if(m_thresholdVisitor!=null) {

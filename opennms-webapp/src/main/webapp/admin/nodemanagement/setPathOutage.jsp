@@ -87,8 +87,6 @@ LABEL
 <script type="text/javascript" >
 
   function verifyIpAddress() {
-    var prompt = new String("IP Address");
-    var errorMsg = new String("");
     var ipValue = new String(document.setCriticalPath.criticalIp.value);
 
     if (!isValidIPAddress(ipValue)) {
@@ -102,7 +100,7 @@ LABEL
   }
 
 
-  function delete()
+  function deletePathOutage()
   {
       if (confirm("Are you sure you want to proceed? This action will delete any existing critical path for this node."))
       {
@@ -146,8 +144,8 @@ LABEL
 <input name="node" value=<%=nodeId%> type="hidden"/>
 
 <p>
-<label for="criticalIp">Critical path IP address in xxx.xxx.xxx.xxx format:</label><br/>
-<input id="criticalIp" type="text" name="criticalIp" size="17" maxlength="15" />
+<label for="criticalIp">Critical path IP address in xxx.xxx.xxx.xxx or xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx format:</label><br/>
+<input id="criticalIp" type="text" name="criticalIp" size="57" maxlength="55" />
 </p>
 
 <p>
@@ -169,7 +167,7 @@ LABEL
 <h2>Delete critical path for this node</h2>
 <br/>
 <p>
-<input type="button" name="task" value="Delete" onClick="delete()"/>
+<input type="button" name="task" value="Delete" onClick="deletePathOutage()"/>
 </p>
 
 </form>

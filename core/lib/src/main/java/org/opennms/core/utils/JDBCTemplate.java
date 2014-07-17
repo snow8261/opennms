@@ -34,15 +34,13 @@ import java.sql.SQLException;
 
 import javax.sql.DataSource;
 
-import org.springframework.dao.DataRetrievalFailureException;
-
 /**
  * <p>Abstract JDBCTemplate class.</p>
  *
  * @author brozow
  * @version $Id: $
  */
-abstract public class JDBCTemplate {
+public abstract class JDBCTemplate {
 
     private DataSource m_db;
     private String m_sql;
@@ -68,7 +66,7 @@ abstract public class JDBCTemplate {
              doExecute(values);
          } catch (final SQLException e) {
              final String vals = argsToString(values);
-             throw new DataRetrievalFailureException("Problem executing statement: "+m_sql+" with values "+vals, e);
+             throw new IllegalArgumentException("Problem executing statement: "+m_sql+" with values "+vals, e);
          }
      }
 
@@ -83,7 +81,7 @@ abstract public class JDBCTemplate {
          return sb.toString();
     }
 
-    private void doExecute(final Object values[]) throws SQLException {
+    private void doExecute(final Object[] values) throws SQLException {
         final DBUtils d = new DBUtils(getClass());
         try {
             final Connection conn = m_db.getConnection();
@@ -105,7 +103,7 @@ abstract public class JDBCTemplate {
      * @param values an array of {@link java.lang.Object} objects.
      * @return a {@link java.lang.String} object.
      */
-    public String reproduceStatement(final Object values[]) {
+    public String reproduceStatement(final Object[] values) {
     		return m_sql+": with vals "+argsToString(values);
     }
     

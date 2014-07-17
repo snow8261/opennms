@@ -42,12 +42,11 @@ import java.util.Set;
 
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.opennms.core.utils.DBUtils;
+import org.opennms.netmgt.EventConstants;
+import org.opennms.netmgt.model.events.EventBuilder;
+import org.opennms.netmgt.model.events.EventIpcManagerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.opennms.netmgt.EventConstants;
-import org.opennms.netmgt.eventd.EventIpcManagerFactory;
-import org.opennms.netmgt.model.capsd.DbNodeEntry;
-import org.opennms.netmgt.model.events.EventBuilder;
 
 /**
  * This class is designed to reparent interfaces in the database based on the
@@ -704,7 +703,9 @@ public final class ReparentViaSmb {
         bldr.addParam(EventConstants.PARM_OLD_NODEID, oldNodeId);
         bldr.addParam(EventConstants.PARM_NEW_NODEID, newNodeId);
         bldr.addParam(EventConstants.PARM_NODE_LABEL, reparentNodeEntry.getLabel());
-        bldr.addParam(EventConstants.PARM_NODE_LABEL_SOURCE, reparentNodeEntry.getLabelSource());
+        if (reparentNodeEntry.getLabelSource() != null) {
+            bldr.addParam(EventConstants.PARM_NODE_LABEL_SOURCE, reparentNodeEntry.getLabelSource().toString());
+        }
         
         if (reparentNodeEntry.getSystemName() != null) {
             bldr.addParam(EventConstants.PARM_NODE_SYSNAME, reparentNodeEntry.getSystemName());

@@ -28,8 +28,6 @@
 
 package org.opennms.web.rest;
 
-import static org.opennms.core.utils.InetAddressUtils.addr;
-
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -49,6 +47,7 @@ import org.opennms.netmgt.dao.api.IpInterfaceDao;
 import org.opennms.netmgt.dao.api.MonitoredServiceDao;
 import org.opennms.netmgt.dao.api.NodeDao;
 import org.opennms.netmgt.dao.api.ServiceTypeDao;
+import org.opennms.netmgt.dao.support.CreateIfNecessaryTemplate;
 import org.opennms.netmgt.model.OnmsIpInterface;
 import org.opennms.netmgt.model.OnmsMonitoredService;
 import org.opennms.netmgt.model.OnmsMonitoredServiceList;
@@ -66,6 +65,7 @@ import org.springframework.beans.PropertyAccessorFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.sun.jersey.spi.resource.PerRequest;
@@ -98,6 +98,9 @@ public class OnmsMonitoredServiceResource extends OnmsRestService {
     @Autowired
     private MonitoredServiceDao m_serviceDao;
     
+    @Autowired
+    private PlatformTransactionManager m_transactionManager;
+
     @Autowired
     private ServiceTypeDao m_serviceTypeDao;
     
@@ -154,22 +157,32 @@ public class OnmsMonitoredServiceResource extends OnmsRestService {
      */
     @POST
     @Consumes(MediaType.APPLICATION_XML)
-    public Response addService(@PathParam("nodeCriteria") String nodeCriteria, @PathParam("ipAddress") String ipAddress, OnmsMonitoredService service) {
+    public Response addService(@PathParam("nodeCriteria") final String nodeCriteria, @PathParam("ipAddress") final String ipAddress, final OnmsMonitoredService service) {
         writeLock();
         
         try {
             OnmsNode node = m_nodeDao.get(nodeCriteria);
             if (node == null) throw getException(Status.BAD_REQUEST, "addService: can't find node " + nodeCriteria);
-            OnmsIpInterface intf = node.getIpInterfaceByIpAddress(ipAddress);
+            final OnmsIpInterface intf = node.getIpInterfaceByIpAddress(ipAddress);
             if (intf == null) throw getException(Status.BAD_REQUEST, "addService: can't find interface with ip address " + ipAddress + " for node " + nodeCriteria);
             if (service == null) throw getException(Status.BAD_REQUEST, "addService: service object cannot be null");
             if (service.getServiceName() == null) throw getException(Status.BAD_REQUEST, "addService: service must have a name");
-            OnmsServiceType serviceType = m_serviceTypeDao.findByName(service.getServiceName());
-            if (serviceType == null)  {
-                LOG.info("addService: creating service type {}", service.getServiceName());
-                serviceType = new OnmsServiceType(service.getServiceName());
-                m_serviceTypeDao.save(serviceType);
-            }
+
+            final OnmsServiceType serviceType = new CreateIfNecessaryTemplate<OnmsServiceType, ServiceTypeDao>(m_transactionManager, m_serviceTypeDao) {
+                @Override
+                protected OnmsServiceType query() {
+                    return m_dao.findByName(service.getServiceName());
+                }
+
+                @Override
+                protected OnmsServiceType doInsert() {
+                    LOG.info("addService: creating service type {}", service.getServiceName());
+                    final OnmsServiceType s = new OnmsServiceType(service.getServiceName());
+                    m_dao.saveOrUpdate(s);
+                    return s;
+                }
+            }.execute();
+
             service.setServiceType(serviceType);
             service.setIpInterface(intf);
             LOG.debug("addService: adding service {}", service);
@@ -217,11 +230,24 @@ public class OnmsMonitoredServiceResource extends OnmsRestService {
                 if (wrapper.isWritableProperty(key)) {
                     String stringValue = params.getFirst(key);
                     Object value = wrapper.convertIfNecessary(stringValue, (Class<?>)wrapper.getPropertyType(key));
+                    if (key.equals("status")) {
+                        if ("S".equals(value) || (service.getStatus().equals("A") && value.equals("F"))) {
+                            LOG.debug("updateService: suspending polling for service {} on node with IP {}", service.getServiceName(), service.getIpAddress().getHostAddress());
+                            value = "F";
+                            sendEvent(EventConstants.SUSPEND_POLLING_SERVICE_EVENT_UEI, service);
+                        }
+                        if ("R".equals(value) || (service.getStatus().equals("F") && value.equals("A"))) {
+                            LOG.debug("updateService: resuming polling for service {} on node with IP {}", service.getServiceName(), service.getIpAddress().getHostAddress());
+                            value = "A";
+                            sendEvent(EventConstants.RESUME_POLLING_SERVICE_EVENT_UEI, service);
+                        }
+                    }
                     wrapper.setPropertyValue(key, value);
                 }
             }
             LOG.debug("updateSservice: service {} updated", service);
             m_serviceDao.saveOrUpdate(service);
+            // If the status is changed, we should send the proper event to notify Pollerd
             return Response.seeOther(getRedirectUri(m_uriInfo)).build();
         } finally {
             writeUnlock();
@@ -252,20 +278,23 @@ public class OnmsMonitoredServiceResource extends OnmsRestService {
             intf.getMonitoredServices().remove(service);
             m_ipInterfaceDao.saveOrUpdate(intf);
             
-            EventBuilder bldr = new EventBuilder(EventConstants.SERVICE_DELETED_EVENT_UEI, getClass().getName());
-            bldr.setNodeid(node.getId());
-            bldr.setInterface(addr(ipAddress));
-            bldr.setService(serviceName);
-    
-            try {
-                m_eventProxy.send(bldr.getEvent());
-            } catch (EventProxyException ex) {
-                throw getException(Status.BAD_REQUEST, ex.getMessage());
-            }
+            sendEvent(EventConstants.SERVICE_DELETED_EVENT_UEI, service);
             return Response.ok().build();
         } finally {
             writeUnlock();
         }
     }
-    
+
+    private void sendEvent(String eventUEI, OnmsMonitoredService dbObj) {
+        final EventBuilder bldr = new EventBuilder(eventUEI, getClass().getName());
+        bldr.setNodeid(dbObj.getNodeId());
+        bldr.setInterface(dbObj.getIpAddress());
+        bldr.setService(dbObj.getServiceName());
+        try {
+            m_eventProxy.send(bldr.getEvent());
+        } catch (EventProxyException ex) {
+            throw getException(Status.BAD_REQUEST, ex.getMessage());
+        }
+    }
+
 }

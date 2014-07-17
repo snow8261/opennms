@@ -5,12 +5,13 @@ TOPDIR=`cd $MYDIR; pwd`
 
 WORKDIR="$TOPDIR/target/rpm"
 
+JAVA_HOME=`"$TOPDIR/bin/javahome.pl"`
+
 export PATH="$TOPDIR/maven/bin:$JAVA_HOME/bin:$PATH"
 
 cd "$TOPDIR"
 
-#opennms-core-1.9.9-0.<datestamp>.rpm
-#opennms-core-<pom-version>-<release-major>.<release-minor>.<release-micro>
+BINARIES="expect rpmbuild rsync makensis"
 
 function exists() {
     which "$1" >/dev/null 2>&1
@@ -110,23 +111,6 @@ function version()
     head -n 1
 }
 
-function setJavaHome()
-{
-    if [ -z "$JAVA_HOME" ]; then
-        # hehe
-        for dir in /usr/java/jdk1.{6,7,8,9}*; do
-            if [ -x "$dir/bin/java" ]; then
-                export JAVA_HOME="$dir"
-                break
-            fi
-        done
-    fi
-
-    if [ -z $JAVA_HOME ]; then
-        die "*** JAVA_HOME must be set ***"
-    fi
-}
-
 function skipCompile()
 {
     if $ASSEMBLY_ONLY; then echo 1; else echo 0; fi
@@ -186,8 +170,6 @@ function main()
     EXTRA_INFO2=$(extraInfo2)
     VERSION=$(version)
 
-    setJavaHome
-
     if $BUILD_RPM; then
         echo "==== Building OpenNMS RPMs ===="
         echo
@@ -225,9 +207,9 @@ function main()
     if $SIGN; then
 
         RPMS=$(echo "$WORKDIR"/RPMS/noarch/*.rpm)
-        #run rpm --define "_signature gpg" --define "_gpg_name $SIGN_ID" --resign "$RPMS"
+        #run rpmsign --define "_signature gpg" --define "_gpg_name $SIGN_ID" --resign "$RPMS"
 
-        run expect -c "set timeout -1; spawn rpm --define \"_signature gpg\" --define \"_gpg_name $SIGN_ID\" --resign $RPMS; match_max 100000; expect \"Enter pass phrase: \"; send -- \"${SIGN_PASSWORD}\r\"; expect eof" || \
+        run expect -c "set timeout -1; spawn rpmsign --define \"_signature gpg\" --define \"_gpg_name $SIGN_ID\" --resign $RPMS; match_max 100000; expect \"Enter pass phrase: \"; send -- \"${SIGN_PASSWORD}\r\"; expect eof" || \
             die "RPM signing failed for $(branch)"
 
     fi
@@ -237,5 +219,13 @@ function main()
     echo ""
     echo "Your completed RPMs are in the $WORKDIR/RPMS/noarch directory."
 }
+
+for BIN in $BINARIES; do
+	EXECUTABLE=`which $BIN 2>/dev/null || :`
+	if [ -z "$EXECUTABLE" ] || [ ! -x "$EXECUTABLE" ]; then
+		echo "ERROR: $BIN not found"
+		exit 1
+	fi
+done
 
 main "$@"

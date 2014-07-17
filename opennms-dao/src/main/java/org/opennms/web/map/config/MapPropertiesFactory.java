@@ -1,5 +1,4 @@
 /*******************************************************************************
- * This file is part of OpenNMS(R).
  *
  * Copyright (C) 2011-2013 The OpenNMS Group, Inc.
  * OpenNMS(R) is Copyright (C) 1999-2013 The OpenNMS Group, Inc.
@@ -663,12 +662,12 @@ public class MapPropertiesFactory {
             Link lnk = new Link(Integer.parseInt(id), speed,text,width,dash_arr,snmp_type,multilinkwidth,multilink_dasharray);
 
             LOG.debug("found link {} with id={}, text={}, speed={}, width={}, dash-array={}, snmp-type={}. Adding it.", links[i], id, text, speed, width, dasharray, snmp_type);
-            linksMap.put(new Integer(id), lnk);
-            Set<Link> linkbysnmptypeSet = linksBySnmpTypeMap.get(new Integer(snmp_type));
+            linksMap.put(Integer.valueOf(id), lnk);
+            Set<Link> linkbysnmptypeSet = linksBySnmpTypeMap.get(Integer.valueOf(snmp_type));
             if(linkbysnmptypeSet==null)
                 linkbysnmptypeSet=new HashSet<Link>();
             linkbysnmptypeSet.add(lnk);
-            linksBySnmpTypeMap.put(new Integer(snmp_type), linkbysnmptypeSet);
+            linksBySnmpTypeMap.put(Integer.valueOf(snmp_type), linkbysnmptypeSet);
         }
 
 
@@ -994,7 +993,7 @@ public class MapPropertiesFactory {
      * @return a {@link java.util.Set} object.
      */
     public Set<Link> getLinkBySnmpType(int linkTypologyId){
-        return linksBySnmpTypeMap.get(new Integer(linkTypologyId));
+        return linksBySnmpTypeMap.get(Integer.valueOf(linkTypologyId));
     }
 
     /**
@@ -1045,7 +1044,7 @@ public class MapPropertiesFactory {
      * @return a {@link org.opennms.web.map.config.Link} object.
      */
     public Link getLink(int id){
-        return (Link)linksMap.get(new Integer(id));
+        return (Link)linksMap.get(Integer.valueOf(id));
     }
 
     /**

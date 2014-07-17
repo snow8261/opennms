@@ -45,6 +45,8 @@ import org.opennms.netmgt.model.OnmsAttribute;
 import org.opennms.netmgt.model.OnmsIpInterface;
 import org.opennms.netmgt.model.OnmsResource;
 import org.opennms.netmgt.model.OnmsResourceType;
+import org.opennms.netmgt.model.ResourceTypeUtils;
+import org.opennms.netmgt.rrd.RrdFileConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
@@ -94,8 +96,7 @@ public class DistributedStatusResourceType implements OnmsResourceType {
     /** {@inheritDoc} */
     @Override
     public List<OnmsResource> getResourcesForDomain(String domain) {
-        List<OnmsResource> empty = Collections.emptyList();
-        return empty;
+        return Collections.emptyList();
     }
 
     /** {@inheritDoc} */
@@ -186,9 +187,8 @@ public class DistributedStatusResourceType implements OnmsResourceType {
     /** {@inheritDoc} */
     @Override
     public List<OnmsResource> getResourcesForNodeSource(String nodeSource, int nodeId) {
-        // is this right?
-        List<OnmsResource> empty = Collections.emptyList();
-        return empty;
+        // TODO: is this right?
+        return Collections.emptyList();
     }
 
     /** {@inheritDoc} */
@@ -229,7 +229,7 @@ public class DistributedStatusResourceType implements OnmsResourceType {
     */
 
     private String getDefinitionNameFromLocationMonitorDirectory(String dir) {
-        int index = dir.indexOf("-");
+        int index = dir.indexOf('-');
         if (index == -1) {
             throw new IllegalArgumentException("Location monitor directory \""
                                                + dir + "\" isn't a valid "
@@ -239,7 +239,7 @@ public class DistributedStatusResourceType implements OnmsResourceType {
     }
 
     private int getLocationMonitorIdFromLocationMonitorDirectory(String dir) {
-        int index = dir.indexOf("-");
+        int index = dir.indexOf('-');
         if (index == -1) {
             throw new IllegalArgumentException("Location monitor directory \""
                                                + dir + "\" isn't a valid "
@@ -267,7 +267,7 @@ public class DistributedStatusResourceType implements OnmsResourceType {
      * @return a {@link java.lang.String} object.
      */
     public String getRelativeInterfacePath(int id, String ipAddr) {
-        return DefaultResourceDao.RESPONSE_DIRECTORY
+        return ResourceTypeUtils.RESPONSE_DIRECTORY
             + File.separator + DISTRIBUTED_DIRECTORY
             + File.separator + Integer.toString(id)
             + File.separator + ipAddr;

@@ -60,6 +60,7 @@ import org.opennms.netmgt.dao.mock.MockEventIpcManager;
 import org.opennms.netmgt.model.AccessPointStatus;
 import org.opennms.netmgt.model.NetworkBuilder;
 import org.opennms.netmgt.model.OnmsAccessPoint;
+import org.opennms.netmgt.model.OnmsNode.NodeType;
 import org.opennms.netmgt.model.events.AnnotationBasedEventListenerAdapter;
 import org.opennms.netmgt.model.events.EventBuilder;
 import org.opennms.netmgt.snmp.SnmpAgentConfig;
@@ -72,7 +73,6 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.transaction.PlatformTransactionManager;
 
 @RunWith(OpenNMSJUnit4ClassRunner.class)
 @ContextConfiguration(locations = {
@@ -93,9 +93,6 @@ public class InstanceStrategyIntegrationTest implements InitializingBean {
     private static final Logger LOG = LoggerFactory.getLogger(InstanceStrategyIntegrationTest.class);
 
     @Autowired
-    private PlatformTransactionManager m_transactionManager;
-
-    @Autowired
     private NodeDao m_nodeDao;
 
     @Autowired
@@ -111,7 +108,7 @@ public class InstanceStrategyIntegrationTest implements InitializingBean {
     private AccessPointDao m_accessPointDao;
 
     @Autowired
-    AccessPointMonitord m_apm;
+    private AccessPointMonitord m_apm;
 
     AnnotationBasedEventListenerAdapter m_adapter;
     AccessPointMonitorConfigFactory m_apmdConfigFactory;
@@ -131,7 +128,6 @@ public class InstanceStrategyIntegrationTest implements InitializingBean {
 
     @Override
     public void afterPropertiesSet() {
-        assertNotNull(m_transactionManager);
         assertNotNull(m_nodeDao);
         assertNotNull(m_ipInterfaceDao);
         assertNotNull(m_serviceTypeDao);
@@ -229,7 +225,7 @@ public class InstanceStrategyIntegrationTest implements InitializingBean {
 
     private void addNewController(String nodeName, String ipAddress, String pollerCategory) {
         NetworkBuilder nb = new NetworkBuilder();
-        nb.addNode(nodeName).setForeignSource("apmd").setForeignId(nodeName).setType("A");
+        nb.addNode(nodeName).setForeignSource("apmd").setForeignId(nodeName).setType(NodeType.ACTIVE);
         nb.setAssetAttribute("pollerCategory", pollerCategory);
         nb.addInterface(ipAddress).setIsSnmpPrimary("P").setIsManaged("M");
         m_nodeDao.save(nb.getCurrentNode());

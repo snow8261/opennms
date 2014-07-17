@@ -27,7 +27,7 @@
  *******************************************************************************/
 package org.opennms.features.vaadin.config;
 
-import org.opennms.netmgt.config.EventConfDao;
+import org.opennms.netmgt.config.api.EventConfDao;
 import org.opennms.netmgt.model.events.EventProxy;
 import org.ops4j.pax.vaadin.AbstractApplicationFactory;
 
@@ -64,13 +64,19 @@ public class EventAdminApplicationFactory extends AbstractApplicationFactory {
         this.eventProxy = eventProxy;
     }
 
+    /* (non-Javadoc)
+     * @see org.ops4j.pax.vaadin.AbstractApplicationFactory#getUIClass()
+     */
     @Override
     public Class<? extends UI> getUIClass() {
         return EventAdminApplication.class;
     }
 
+    /* (non-Javadoc)
+     * @see org.ops4j.pax.vaadin.AbstractApplicationFactory#getUI()
+     */
     @Override
-    public UI getUI() {
+    public UI createUI() {
         EventAdminApplication app = new EventAdminApplication();
         app.setEventProxy(eventProxy);
         app.setEventConfDao(eventConfDao);

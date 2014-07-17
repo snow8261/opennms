@@ -449,7 +449,7 @@ public class DefaultAdminCategoryService implements
     private void notifyCategoryChange(final OnmsNode node) {
         EventBuilder bldr = new EventBuilder(EventConstants.NODE_CATEGORY_MEMBERSHIP_CHANGED_EVENT_UEI, "CategoryUI");
         bldr.setNode(node);
-        bldr.setParam("nodelabel", node.getLabel());
+        bldr.setParam(EventConstants.PARM_NODE_LABEL, node.getLabel());
         send(bldr.getEvent());
     }
     
@@ -461,7 +461,7 @@ public class DefaultAdminCategoryService implements
         }
     }
     
-    public class CategoryAndMemberNodes {
+    public static class CategoryAndMemberNodes {
         private OnmsCategory m_category;
         private Collection<OnmsNode> m_memberNodes;
 
@@ -480,7 +480,7 @@ public class DefaultAdminCategoryService implements
         }
     }
 
-    public class EditModel {
+    public static class EditModel {
         private OnmsCategory m_category;
         private List<OnmsNode> m_nodes;
         private List<OnmsNode> m_sortedMemberNodes;
@@ -513,7 +513,7 @@ public class DefaultAdminCategoryService implements
         
     }
     
-    public class NodeEditModel {
+    public static class NodeEditModel {
         private OnmsNode m_node;
         private List<OnmsCategory> m_categories;
         private List<OnmsCategory> m_sortedCategories;

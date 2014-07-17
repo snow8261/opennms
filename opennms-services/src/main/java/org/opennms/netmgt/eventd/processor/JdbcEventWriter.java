@@ -54,7 +54,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
  * EventWriter loads the information in each 'Event' into the database.
@@ -73,17 +73,12 @@ import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
  * 
  * @deprecated Replace with a Hibernate implementation. See bug NMS-3033. Actually
  * it doesn't have any details. :P
- * http://issues.opennms.org:8280/browse/NMS-3033
+ * http://issues.opennms.org/browse/NMS-3033
  *
  * @see org.opennms.netmgt.model.events.Constants#MULTIPLE_VAL_DELIM
  * @see org.opennms.netmgt.model.events.Constants#DB_ATTRIB_DELIM
  * @see org.opennms.netmgt.model.events.Constants#NAME_VAL_DELIM
- * @see org.opennms.netmgt.model.events.Constants#MULTIPLE_VAL_DELIM
- * @see org.opennms.netmgt.model.events.Constants#DB_ATTRIB_DELIM
- * @see org.opennms.netmgt.model.events.Constants#NAME_VAL_DELIM
- * @see org.opennms.netmgt.model.events.Constants#MULTIPLE_VAL_DELIM
- * @see org.opennms.netmgt.model.events.Constants#DB_ATTRIB_DELIM
- * @see org.opennms.netmgt.model.events.Constants#NAME_VAL_DELIM
+ *
  * @author <A HREF="mailto:sowmya@opennms.org">Sowmya Nataraj </A>
  * @author <A HREF="http://www.opennms.org">OpenNMS.org </A>
  */
@@ -376,7 +371,7 @@ public final class JdbcEventWriter extends AbstractJdbcPersister implements Even
     
     String getHostName(final int nodeId, final String hostip) throws SQLException {
         try {
-            final String hostname = new SimpleJdbcTemplate(getDataSource()).queryForObject(EventdConstants.SQL_DB_HOSTIP_TO_HOSTNAME, String.class, new Object[] { nodeId, hostip });
+            final String hostname = new JdbcTemplate(getDataSource()).queryForObject(EventdConstants.SQL_DB_HOSTIP_TO_HOSTNAME, String.class, new Object[] { nodeId, hostip });
             return (hostname != null) ? hostname : hostip;
         } catch (final EmptyResultDataAccessException e) {
             return hostip;

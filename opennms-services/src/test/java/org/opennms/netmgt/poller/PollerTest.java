@@ -61,7 +61,7 @@ import org.opennms.netmgt.config.poller.Package;
 import org.opennms.netmgt.dao.mock.EventAnticipator;
 import org.opennms.netmgt.dao.mock.MockEventIpcManager;
 import org.opennms.netmgt.dao.support.NullRrdStrategy;
-import org.opennms.netmgt.eventd.datablock.EventUtil;
+import org.opennms.netmgt.eventd.EventUtil;
 import org.opennms.netmgt.mock.MockElement;
 import org.opennms.netmgt.mock.MockEventUtil;
 import org.opennms.netmgt.mock.MockInterface;
@@ -76,7 +76,6 @@ import org.opennms.netmgt.mock.MockVisitorAdapter;
 import org.opennms.netmgt.mock.OutageAnticipator;
 import org.opennms.netmgt.mock.PollAnticipator;
 import org.opennms.netmgt.mock.TestCapsdConfigManager;
-import org.opennms.netmgt.model.PollStatus;
 import org.opennms.netmgt.model.events.EventUtils;
 import org.opennms.netmgt.poller.pollables.PollableNetwork;
 import org.opennms.netmgt.rrd.RrdUtils;
@@ -185,7 +184,7 @@ public class PollerTest {
 		m_eventMgr.addEventListener(m_outageAnticipator);
 		m_eventMgr.setSynchronous(false);
 		
-		QueryManager queryManager = new DefaultQueryManager();
+		DefaultQueryManager queryManager = new DefaultQueryManager();
 		queryManager.setDataSource(m_db);
 		
 		DefaultPollContext pollContext = new DefaultPollContext();
@@ -1161,27 +1160,36 @@ public class PollerTest {
 
 	}
 
-    @Test
+    @Test(timeout=30000)
 	public void testSuspendPollingResumeService() {
 
 		MockService svc = m_network.getService(1, "192.168.1.2", "SMTP");
 
+		assertTrue(svc.getPollCount() < 1);
+
 		startDaemons();
 
-		sleep(2000);
+		while (svc.getPollCount() < 1) {
+			sleep(500);
+		}
 		assertTrue(0 < svc.getPollCount());
 
 		m_eventMgr.sendEventToListeners(MockEventUtil
 				.createSuspendPollingServiceEvent("Test", svc));
 		svc.resetPollCount();
 
-		sleep(5000);
-		assertEquals(0, svc.getPollCount());
+		for (int i = 0; i < 10; i++) {
+			// Make sure that the count remains at zero
+			assertEquals(0, svc.getPollCount());
+			sleep(500);
+		}
 
 		m_eventMgr.sendEventToListeners(MockEventUtil
 				.createResumePollingServiceEvent("Test", svc));
 
-		sleep(2000);
+		while (svc.getPollCount() < 1) {
+			sleep(500);
+		}
 		assertTrue(0 < svc.getPollCount());
 
 	}

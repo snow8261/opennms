@@ -37,14 +37,8 @@ import java.security.NoSuchAlgorithmException;
 
 import javax.net.ssl.SSLContext;
 
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpException;
-import org.apache.http.HttpRequest;
-import org.apache.http.HttpRequestInterceptor;
 import org.apache.http.HttpResponse;
-import org.apache.http.HttpResponseInterceptor;
 import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.entity.GzipDecompressingEntity;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpRequestBase;
@@ -80,6 +74,7 @@ import org.slf4j.LoggerFactory;
  */
 public class HttpUrlConnection extends URLConnection {
 
+    /** The Constant LOG. */
     private static final Logger LOG = LoggerFactory.getLogger(HttpUrlConnection.class);
 
     /** The URL. */
@@ -136,7 +131,7 @@ public class HttpUrlConnection extends URLConnection {
                 });
             }
             String disableSslVerification = m_request.getParameter("disable-ssl-verification");
-            if (Boolean.getBoolean(disableSslVerification)) {
+            if (Boolean.parseBoolean(disableSslVerification)) {
                 final SchemeRegistry registry = m_client.getConnectionManager().getSchemeRegistry();
                 final Scheme https = registry.getScheme("https");
                 try {

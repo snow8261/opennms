@@ -43,12 +43,12 @@ import org.opennms.core.utils.InetAddressUtils;
 import org.opennms.core.utils.ParameterMap;
 import org.opennms.netmgt.config.PollerConfig;
 import org.opennms.netmgt.config.poller.Package;
-import org.opennms.netmgt.model.PollStatus;
-import org.opennms.netmgt.model.RrdRepository;
 import org.opennms.netmgt.poller.MonitoredService;
+import org.opennms.netmgt.poller.PollStatus;
 import org.opennms.netmgt.poller.ServiceMonitor;
 import org.opennms.netmgt.rrd.RrdDataSource;
 import org.opennms.netmgt.rrd.RrdException;
+import org.opennms.netmgt.rrd.RrdRepository;
 import org.opennms.netmgt.rrd.RrdUtils;
 import org.opennms.netmgt.threshd.LatencyThresholdingSet;
 import org.opennms.netmgt.threshd.ThresholdingEventProxy;
@@ -135,7 +135,7 @@ public class LatencyStoringServiceMonitorAdaptor implements ServiceMonitor {
             entries.remove(DEFAULT_BASENAME);
         }
 
-        if (thresholds.toLowerCase().equals("true")) {
+        if (thresholds.equalsIgnoreCase("true")) {
             applyThresholds(rrdPath, svc, dsName, entries);
         } else {
             LOG.debug("storeResponseTime: Thresholds processing is not enabled. Check thresholding-enabled parameter on service definition");

@@ -40,10 +40,10 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.opennms.core.spring.BeanUtils;
 import org.opennms.core.test.MockLogAppender;
 import org.opennms.core.test.OpenNMSJUnit4ClassRunner;
 import org.opennms.core.test.db.annotations.JUnitTemporaryDatabase;
-import org.opennms.core.utils.BeanUtils;
 import org.opennms.core.utils.InetAddressUtils;
 import org.opennms.netmgt.dao.DatabasePopulator;
 import org.opennms.netmgt.model.OnmsEvent;
@@ -57,6 +57,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.transaction.annotation.Transactional;
 
 @RunWith(OpenNMSJUnit4ClassRunner.class)
 @ContextConfiguration(locations={
@@ -65,11 +66,11 @@ import org.springframework.test.context.ContextConfiguration;
         "classpath*:/META-INF/opennms/component-dao.xml",
         "classpath*:/META-INF/opennms/component-service.xml",
         "classpath:/daoWebRepositoryTestContext.xml",
-        "classpath:/jdbcWebRepositoryTestContext.xml",
         "classpath:/META-INF/opennms/applicationContext-minimal-conf.xml"
 })
 @JUnitConfigurationEnvironment
 @JUnitTemporaryDatabase
+@Transactional
 public class WebOutageRepositoryFilterTest implements InitializingBean {
     
     @Autowired
@@ -78,10 +79,6 @@ public class WebOutageRepositoryFilterTest implements InitializingBean {
     @Autowired
     @Qualifier("dao")
     WebOutageRepository m_daoOutageRepo;
-    
-    @Autowired
-    @Qualifier("jdbc")
-    WebOutageRepository m_jdbcOutageRepo;
     
     @Autowired
     ApplicationContext m_appContext;
@@ -121,9 +118,6 @@ public class WebOutageRepositoryFilterTest implements InitializingBean {
         
         Outage[] outages = m_daoOutageRepo.getMatchingOutages(criteria);
         assertEquals(1, outages.length);
-        
-        outages = m_jdbcOutageRepo.getMatchingOutages(criteria);
-        assertEquals(1, outages.length);
     }
     
     @Test
@@ -133,9 +127,6 @@ public class WebOutageRepositoryFilterTest implements InitializingBean {
         OutageCriteria criteria = new OutageCriteria(filter);
         
         Outage[] outages = m_daoOutageRepo.getMatchingOutages(criteria);
-        assertEquals(3, outages.length);
-        
-        outages = m_jdbcOutageRepo.getMatchingOutages(criteria);
         assertEquals(3, outages.length);
     }
     
@@ -147,9 +138,6 @@ public class WebOutageRepositoryFilterTest implements InitializingBean {
         
         Outage[] outages = m_daoOutageRepo.getMatchingOutages(criteria);
         assertEquals(3, outages.length);
-        
-        outages = m_jdbcOutageRepo.getMatchingOutages(criteria);
-        assertEquals(3, outages.length);
     }
     
     @Test
@@ -160,9 +148,6 @@ public class WebOutageRepositoryFilterTest implements InitializingBean {
         
         Outage[] outages = m_daoOutageRepo.getMatchingOutages(criteria);
         assertEquals(1, outages.length);
-        
-        outages = m_jdbcOutageRepo.getMatchingOutages(criteria);
-        assertEquals(1, outages.length);
     }
     
     @Test
@@ -172,9 +157,6 @@ public class WebOutageRepositoryFilterTest implements InitializingBean {
         OutageCriteria criteria = new OutageCriteria(filter);
         
         Outage[] outages = m_daoOutageRepo.getMatchingOutages(criteria);
-        assertEquals(1, outages.length);
-        
-        outages = m_jdbcOutageRepo.getMatchingOutages(criteria);
         assertEquals(1, outages.length);
     }
     
@@ -192,10 +174,8 @@ public class WebOutageRepositoryFilterTest implements InitializingBean {
         
         Outage[] outages = m_daoOutageRepo.getMatchingOutages(criteria);
         assertEquals(3, outages.length);
-        
-        outages = m_jdbcOutageRepo.getMatchingOutages(criteria);
-        assertEquals(3, outages.length);
     }
+
     @Test
     @JUnitTemporaryDatabase // Relies on records created in @Before so we need a fresh database
     public void testNegativeInterfaceFilter(){
@@ -203,9 +183,6 @@ public class WebOutageRepositoryFilterTest implements InitializingBean {
         OutageCriteria criteria = new OutageCriteria(filter);
         
         Outage[] outages = m_daoOutageRepo.getMatchingOutages(criteria);
-        assertEquals(2, outages.length);
-        
-        outages = m_jdbcOutageRepo.getMatchingOutages(criteria);
         assertEquals(2, outages.length);
     }
     
@@ -222,26 +199,17 @@ public class WebOutageRepositoryFilterTest implements InitializingBean {
 //        Outage[] outages = m_daoOutageRepo.getMatchingOutages(criteria);
 //        assertEquals(2, outages.length);
 //        
-//        outages = m_jdbcOutageRepo.getMatchingOutages(criteria);
-//        assertEquals(2, outages.length);
-//        
 //        outages = m_daoOutageRepo.getMatchingOutages(criteria2);
-//        assertEquals(1, outages.length);
-//        
-//        outages = m_jdbcOutageRepo.getMatchingOutages(criteria2);
 //        assertEquals(1, outages.length);
     }
     
     @Test
     @JUnitTemporaryDatabase // Relies on specific IDs so we need a fresh database
     public void testNegativeServiceFilter(){
-        NegativeServiceFilter filter = new NegativeServiceFilter(2);
+        NegativeServiceFilter filter = new NegativeServiceFilter(2, null);
         OutageCriteria criteria = new OutageCriteria(filter);
         
         Outage[] outages = m_daoOutageRepo.getMatchingOutages(criteria);
-        assertEquals(1, outages.length);
-        
-        outages = m_jdbcOutageRepo.getMatchingOutages(criteria);
         assertEquals(1, outages.length);
     }
     
@@ -258,13 +226,7 @@ public class WebOutageRepositoryFilterTest implements InitializingBean {
 //        Outage[] outages = m_daoOutageRepo.getMatchingOutages(criteria);
 //        assertEquals(2, outages.length);
 //        
-//        outages = m_jdbcOutageRepo.getMatchingOutages(criteria);
-//        assertEquals(2, outages.length);
-//        
 //        outages = m_daoOutageRepo.getMatchingOutages(criteria2);
-//        assertEquals(1, outages.length);
-//        
-//        outages = m_jdbcOutageRepo.getMatchingOutages(criteria2);
 //        assertEquals(1, outages.length);
     }
     
@@ -280,26 +242,17 @@ public class WebOutageRepositoryFilterTest implements InitializingBean {
         Outage[] outages = m_daoOutageRepo.getMatchingOutages(criteria);
         assertEquals(2, outages.length);
         
-        outages = m_jdbcOutageRepo.getMatchingOutages(criteria);
-        assertEquals(2, outages.length);
-        
         outages = m_daoOutageRepo.getMatchingOutages(criteria2);
-        assertEquals(1, outages.length);
-        
-        outages = m_jdbcOutageRepo.getMatchingOutages(criteria2);
         assertEquals(1, outages.length);
     }
     
     @Test
     @JUnitTemporaryDatabase // Relies on specific IDs so we need a fresh database
     public void testServiceFilter(){
-        ServiceFilter filter = new ServiceFilter(2);
+        ServiceFilter filter = new ServiceFilter(2, null);
         OutageCriteria criteria = new OutageCriteria(filter);
         
         Outage[] outages = m_daoOutageRepo.getMatchingOutages(criteria);
-        assertEquals(2, outages.length);
-        
-        outages = m_jdbcOutageRepo.getMatchingOutages(criteria);
         assertEquals(2, outages.length);
     }
 }

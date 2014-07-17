@@ -55,11 +55,13 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlTransient;
 
 import org.apache.commons.lang.builder.ToStringBuilder;
+import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 import org.opennms.netmgt.model.OnmsArpInterface.StatusType;
 
 @XmlRootElement(name = "ipRouteInterface")
 @Entity
 @Table(name="ipRouteInterface", uniqueConstraints = {@UniqueConstraint(columnNames={"nodeId", "routeDest"})})
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class OnmsIpRouteInterface {
 
     private Integer m_id;
@@ -174,10 +176,10 @@ public class OnmsIpRouteInterface {
             return null;
         }
         
-        public static RouteType OTHER = new RouteType(ROUTE_TYPE_OTHER);
-        public static RouteType INVALID = new RouteType(ROUTE_TYPE_INVALID);
-        public static RouteType DIRECT = new RouteType(ROUTE_TYPE_DIRECT);
-        public static RouteType INDIRECT = new RouteType(ROUTE_TYPE_INDIRECT);
+        public static final RouteType OTHER = new RouteType(ROUTE_TYPE_OTHER);
+        public static final RouteType INVALID = new RouteType(ROUTE_TYPE_INVALID);
+        public static final RouteType DIRECT = new RouteType(ROUTE_TYPE_DIRECT);
+        public static final RouteType INDIRECT = new RouteType(ROUTE_TYPE_INDIRECT);
 
     }
    @Id

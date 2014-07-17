@@ -55,7 +55,6 @@ import org.opennms.netmgt.xml.event.Events;
 import org.opennms.netmgt.xml.event.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
@@ -174,7 +173,7 @@ public class EventIpcManagerDefaultImpl implements EventIpcManager, EventIpcBroa
                         LOG.info("run: calling onEvent on {} for event {} dbid {} with time {}", m_listener.getName(), event.getUei(), event.getDbid(), event.getTime());
 
                         // Make sure we restore our log4j logging prefix after onEvent is called
-                        Map mdc = Logging.getCopyOfContextMap();
+                        Map<String,String> mdc = Logging.getCopyOfContextMap();
                         try {
                             m_listener.onEvent(event);
                         } finally {

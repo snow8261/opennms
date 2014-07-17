@@ -36,7 +36,7 @@ import org.opennms.features.vaadin.datacollection.DataCollectionWindow;
 import org.opennms.features.vaadin.events.EventWindow;
 import org.opennms.features.vaadin.mibcompiler.api.MibParser;
 import org.opennms.netmgt.config.DataCollectionConfigDao;
-import org.opennms.netmgt.config.EventConfDao;
+import org.opennms.netmgt.config.api.EventConfDao;
 import org.opennms.netmgt.config.datacollection.DatacollectionGroup;
 import org.opennms.netmgt.model.events.EventProxy;
 import org.opennms.netmgt.xml.eventconf.Events;
@@ -50,13 +50,9 @@ import com.vaadin.ui.Panel;
 import com.vaadin.ui.Tree;
 import com.vaadin.ui.VerticalLayout;
 import com.vaadin.ui.Window;
-import com.vaadin.ui.themes.Runo;
-
-import de.steinwedel.vaadin.MessageBox;
-import de.steinwedel.vaadin.MessageBox.ButtonType;
-import de.steinwedel.vaadin.MessageBox.EventListener;
 
 import org.slf4j.LoggerFactory;
+import org.vaadin.dialogs.ConfirmDialog;
 
 /**
  * The Class MIB Compiler Panel.
@@ -65,6 +61,8 @@ import org.slf4j.LoggerFactory;
  */
 @SuppressWarnings("serial")
 public class MibCompilerPanel extends Panel {
+
+    /** The Constant LOG. */
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(MibCompilerPanel.class);
 
     /** The Constant PENDING. */
@@ -77,7 +75,8 @@ public class MibCompilerPanel extends Panel {
     private static final String MIB_FILE_EXTENTION = ".mib";
 
     /** The Constant MIBS_ROOT_DIR. */
-    private static final File MIBS_ROOT_DIR = new File(ConfigFileConstants.getHome(),  "/share/mibs"); // TODO Must be configurable
+    // TODO Make the MIBs directory configurable
+    private static final File MIBS_ROOT_DIR = new File(ConfigFileConstants.getHome(),  "share" + File.separatorChar + "mibs");
 
     /** The Constant MIBS_COMPILED_DIR. */
     private static final File MIBS_COMPILED_DIR = new File(MIBS_ROOT_DIR, COMPILED);
@@ -186,7 +185,7 @@ public class MibCompilerPanel extends Panel {
 
         // Panel Setup
         setSizeFull();
-        addStyleName(Runo.PANEL_LIGHT);
+        addStyleName("light");
         layout.setComponentAlignment(upload, Alignment.TOP_RIGHT);
         layout.setExpandRatio(mibsTree, 1);
 
@@ -236,17 +235,14 @@ public class MibCompilerPanel extends Panel {
             public void handleAction(Action action, Object sender, Object target) {
                 final String fileName = (String) target;
                 if (action == ACTION_DELETE) {
-                    MessageBox mb = new MessageBox(getUI().getWindows().iterator().next(),
-                                                   "Are you sure?",
-                                                   MessageBox.Icon.QUESTION,
-                                                   "Do you really want to delete " + fileName + "?<br/>This cannot be undone.",
-                                                   new MessageBox.ButtonConfig(MessageBox.ButtonType.YES, "Yes"),
-                                                   new MessageBox.ButtonConfig(MessageBox.ButtonType.NO, "No"));
-                    mb.addStyleName(Runo.WINDOW_DIALOG);
-                    mb.show(new EventListener() {
-                        @Override
-                        public void buttonClicked(ButtonType buttonType) {
-                            if (buttonType == MessageBox.ButtonType.YES) {
+                    ConfirmDialog.show(getUI(),
+                                       "Are you sure?",
+                                       "Do you really want to delete " + fileName + "?\nThis cannot be undone.",
+                                       "Yes",
+                                       "No",
+                                       new ConfirmDialog.Listener() {
+                        public void onClose(ConfirmDialog dialog) {
+                            if (dialog.isConfirmed()) {
                                 String source = mibsTree.getParent(fileName).toString();
                                 File file = new File(PENDING.equals(source) ? MIBS_PENDING_DIR : MIBS_COMPILED_DIR, fileName);
                                 if (file.delete()) {
@@ -270,12 +266,25 @@ public class MibCompilerPanel extends Panel {
                 if (action == ACTION_COMPILE) {
                     if (parseMib(logger, new File(MIBS_PENDING_DIR, fileName))) {
                         // Renaming the file to be sure that the target name is correct and always has a file extension.
-                        String mibFileName = mibParser.getMibName() + MIB_FILE_EXTENTION;
-                        logger.info("Renaming file " + fileName + " to " + mibFileName);
-                        mibsTree.removeItem(target);
-                        addTreeItem(mibFileName, COMPILED);
-                        File file = new File(MIBS_PENDING_DIR, fileName);
-                        file.renameTo(new File(MIBS_COMPILED_DIR, mibFileName));
+                        final String mibFileName = mibParser.getMibName() + MIB_FILE_EXTENTION;
+                        final File currentFile = new File(MIBS_PENDING_DIR, fileName);
+                        final File suggestedFile = new File(MIBS_COMPILED_DIR, mibFileName);
+                        if (suggestedFile.exists()) {
+                            ConfirmDialog.show(getUI(),
+                                               "Are you sure?",
+                                                   "The MIB " + mibFileName + " already exist on the compiled directory?<br/>Override the existing file could break other compiled mibs, so proceed with caution.<br/>This cannot be undone.",
+                                                   "Yes",
+                                                   "No",
+                                                   new ConfirmDialog.Listener() {
+                                public void onClose(ConfirmDialog dialog) {
+                                    if (dialog.isConfirmed()) {
+                                        renameFile(logger, currentFile, suggestedFile);
+                                    }
+                                }
+                            });
+                        } else {
+                            renameFile(logger, currentFile, suggestedFile);
+                        }
                     }
                 }
                 if (action == ACTION_EVENTS) {
@@ -286,6 +295,22 @@ public class MibCompilerPanel extends Panel {
                 }
             }
         });
+    }
+
+    /**
+     * Rename file.
+     *
+     * @param logger the logger
+     * @param currentFile the current file
+     * @param suggestedFile the suggested file
+     */
+    private void renameFile(Logger logger, File currentFile, File suggestedFile) {
+        logger.info("Renaming file " + currentFile.getName() + " to " + suggestedFile.getName());
+        mibsTree.removeItem(currentFile.getName());
+        addTreeItem(suggestedFile.getName(), COMPILED);
+        if(!currentFile.renameTo(suggestedFile)) {
+        	LOG.warn("Could not rename file: {}", currentFile.getPath());
+        }
     }
 
     /**
@@ -322,7 +347,8 @@ public class MibCompilerPanel extends Panel {
         } else {
             List<String> dependencies = mibParser.getMissingDependencies();
             if (dependencies.isEmpty()) {
-                logger.error("Problem found when compiling the MIB: <pre>" + mibParser.getFormattedErrors() + "</pre>");
+                String preStyle = "white-space: pre-wrap; white-space: -moz-pre-wrap; white-space: -pre-wrap; white-space: -o-pre-wrap; word-wrap: break-word;";
+                logger.error("Problem found when compiling the MIB: <pre style=\"" + preStyle + "\">" + mibParser.getFormattedErrors() + "</pre>");
             } else {
                 logger.error("Dependencies required: <b>" + dependencies + "</b>");
             }
@@ -364,7 +390,9 @@ public class MibCompilerPanel extends Panel {
                 try {
                     logger.info("Found " + events.getEventCount() + " events.");
                     final String eventsFileName = fileName.replaceFirst("\\..*$", ".events.xml");
-                    final EventWindow w = new EventWindow(eventsDao, eventsProxy, eventsFileName, events, logger);
+                    final File configDir = new File(ConfigFileConstants.getHome(), "etc" + File.separatorChar + "events");
+                    final File eventFile = new File(configDir, eventsFileName);
+                    final EventWindow w = new EventWindow(eventsDao, eventsProxy, eventFile, events, logger);
                     getUI().addWindow(w);
                 } catch (Throwable t) {
                     Notification.show(t.getMessage(), Notification.Type.ERROR_MESSAGE);
@@ -387,7 +415,7 @@ public class MibCompilerPanel extends Panel {
             if (dcGroup == null) {
                 Notification.show("The MIB couldn't be processed for data collection because: " + mibParser.getFormattedErrors(), Notification.Type.ERROR_MESSAGE);
             } else {
-                if (dcGroup.getGroupCount() > 0) {
+                if (dcGroup.getGroups().size() > 0) {
                     try {
                         final String dataFileName = fileName.replaceFirst("\\..*$", ".xml");
                         final DataCollectionWindow w = new DataCollectionWindow(mibParser, dataCollectionDao, dataFileName, dcGroup, logger);

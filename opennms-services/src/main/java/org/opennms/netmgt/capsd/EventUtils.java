@@ -39,9 +39,9 @@ import java.util.List;
 
 import org.opennms.core.utils.InetAddressUtils;
 import org.opennms.netmgt.EventConstants;
-import org.opennms.netmgt.eventd.EventIpcManagerFactory;
-import org.opennms.netmgt.model.capsd.DbNodeEntry;
+import org.opennms.netmgt.model.OnmsNode.NodeLabelSource;
 import org.opennms.netmgt.model.events.EventBuilder;
+import org.opennms.netmgt.model.events.EventIpcManagerFactory;
 import org.opennms.netmgt.model.events.EventListener;
 import org.opennms.netmgt.utils.XmlrpcUtil;
 import org.opennms.netmgt.xml.event.Event;
@@ -525,7 +525,7 @@ public abstract class EventUtils {
      * @return a {@link org.opennms.netmgt.xml.event.Event} object.
      */
     public static Event createNodeAddedEvent(DbNodeEntry nodeEntry) {
-        return createNodeAddedEvent(nodeEntry.getNodeId(), nodeEntry.getLabel(), String.valueOf(nodeEntry.getLabelSource()));
+        return createNodeAddedEvent(nodeEntry.getNodeId(), nodeEntry.getLabel(), nodeEntry.getLabelSource());
     }
 
 	/**
@@ -536,7 +536,7 @@ public abstract class EventUtils {
 	 * @param labelSource a {@link java.lang.String} object.
 	 * @return a {@link org.opennms.netmgt.xml.event.Event} object.
 	 */
-	public static Event createNodeAddedEvent(int nodeId, String nodeLabel, String labelSource) {
+	public static Event createNodeAddedEvent(int nodeId, String nodeLabel, NodeLabelSource labelSource) {
         return createNodeAddedEvent("OpenNMS.Capsd", nodeId, nodeLabel, labelSource);
 	}
 
@@ -549,13 +549,15 @@ public abstract class EventUtils {
      * @param labelSource a {@link java.lang.String} object.
      * @return a {@link org.opennms.netmgt.xml.event.Event} object.
      */
-    public static Event createNodeAddedEvent(String source, int nodeId, String nodeLabel, String labelSource) {
+    public static Event createNodeAddedEvent(String source, int nodeId, String nodeLabel, NodeLabelSource labelSource) {
 		EventBuilder bldr = createNodeEventBuilder(EventConstants.NODE_ADDED_EVENT_UEI, source, nodeId, -1);
 
         bldr.setHost(Capsd.getLocalHostAddress());
         
         bldr.setParam(EventConstants.PARM_NODE_LABEL, nodeLabel);
-        bldr.setParam(EventConstants.PARM_NODE_LABEL_SOURCE, labelSource);
+        if (labelSource != null) {
+            bldr.setParam(EventConstants.PARM_NODE_LABEL_SOURCE, labelSource.toString());
+        }
 
         return bldr.getEvent();
     }
@@ -705,7 +707,7 @@ public abstract class EventUtils {
     public static Event createNodeGainedServiceEvent(DbNodeEntry nodeEntry, InetAddress ifaddr, String service, long txNo) {
         int nodeId = nodeEntry.getNodeId();
         String nodeLabel = nodeEntry.getLabel();
-        String labelSource = String.valueOf(nodeEntry.getLabelSource());
+        NodeLabelSource labelSource = nodeEntry.getLabelSource();
         String sysName = nodeEntry.getSystemName();
         String sysDescr = nodeEntry.getSystemDescription();
 
@@ -725,7 +727,7 @@ public abstract class EventUtils {
 	 * @param sysDescr a {@link java.lang.String} object.
 	 * @return a {@link org.opennms.netmgt.xml.event.Event} object.
 	 */
-	public static Event createNodeGainedServiceEvent(String source, int nodeId, InetAddress ifaddr, String service, String nodeLabel, String labelSource, String sysName, String sysDescr) {
+	public static Event createNodeGainedServiceEvent(String source, int nodeId, InetAddress ifaddr, String service, String nodeLabel, NodeLabelSource labelSource, String sysName, String sysDescr) {
 
 	    EventBuilder bldr = createServiceEventBuilder(EventConstants.NODE_GAINED_SERVICE_EVENT_UEI, source, nodeId, InetAddressUtils.str(ifaddr), service, -1);
 
@@ -733,7 +735,9 @@ public abstract class EventUtils {
         
         bldr.addParam(EventConstants.PARM_IP_HOSTNAME, ifaddr.getHostName());
         bldr.addParam(EventConstants.PARM_NODE_LABEL, nodeLabel);
-        bldr.addParam(EventConstants.PARM_NODE_LABEL_SOURCE, labelSource);
+        if (labelSource != null) {
+            bldr.addParam(EventConstants.PARM_NODE_LABEL_SOURCE, labelSource.toString());
+        }
         
         // Add sysName if available
 		if (sysName != null) {
@@ -774,7 +778,9 @@ public abstract class EventUtils {
         
         bldr.addParam(EventConstants.PARM_IP_HOSTNAME, ifaddr.getHostName());
         bldr.addParam(EventConstants.PARM_NODE_LABEL, nodeEntry.getLabel());
-        bldr.addParam(EventConstants.PARM_NODE_LABEL_SOURCE, nodeEntry.getLabelSource());
+        if (nodeEntry.getLabelSource() != null) {
+            bldr.addParam(EventConstants.PARM_NODE_LABEL_SOURCE, nodeEntry.getLabelSource().toString());
+        }
 
         return bldr.getEvent();
     }

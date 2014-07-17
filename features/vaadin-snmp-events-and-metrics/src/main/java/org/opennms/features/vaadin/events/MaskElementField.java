@@ -30,14 +30,14 @@ package org.opennms.features.vaadin.events;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.opennms.features.vaadin.api.OnmsBeanContainer;
 import org.opennms.netmgt.xml.eventconf.Maskelement;
+import org.vaadin.dialogs.ConfirmDialog;
 
 import com.vaadin.data.Container;
-import com.vaadin.data.Property;
-import com.vaadin.data.util.BeanContainer;
-import com.vaadin.data.util.converter.Converter.ConversionException;
 import com.vaadin.ui.Alignment;
 import com.vaadin.ui.Button;
+import com.vaadin.ui.ComboBox;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.CustomField;
 import com.vaadin.ui.DefaultFieldFactory;
@@ -47,11 +47,6 @@ import com.vaadin.ui.Notification;
 import com.vaadin.ui.Table;
 import com.vaadin.ui.TextField;
 import com.vaadin.ui.VerticalLayout;
-import com.vaadin.ui.themes.Runo;
-
-import de.steinwedel.vaadin.MessageBox;
-import de.steinwedel.vaadin.MessageBox.ButtonType;
-import de.steinwedel.vaadin.MessageBox.EventListener;
 
 /**
  * The Event's MaskElement Field.
@@ -59,34 +54,31 @@ import de.steinwedel.vaadin.MessageBox.EventListener;
  * @author <a href="mailto:agalue@opennms.org">Alejandro Galue</a> 
  */
 @SuppressWarnings("serial")
-public class MaskElementField extends CustomField<MaskElementField.MaskElementArrayList> implements Button.ClickListener {
-
-	public static class MaskElementArrayList extends ArrayList<Maskelement> {}
-
-	private static final long serialVersionUID = -2755346278615977088L;
-
-	/** The Table. */
-    private final Table table = new Table();
+public class MaskElementField extends CustomField<List<Maskelement>> implements Button.ClickListener {
 
     /** The Container. */
-    private final BeanContainer<String,Maskelement> container = new BeanContainer<String,Maskelement>(Maskelement.class);
+    private final OnmsBeanContainer<Maskelement> container = new OnmsBeanContainer<Maskelement>(Maskelement.class);
+
+    /** The Table. */
+    private final Table table = new Table(null, container);
 
     /** The Toolbar. */
     private final HorizontalLayout toolbar = new HorizontalLayout();
 
     /** The add button. */
-    private final Button add;
+    private final Button add = new Button("Add", this);
 
     /** The delete button. */
-    private final Button delete;
+    private final Button delete = new Button("Delete", this);
 
     /**
      * Instantiates a new mask element field.
+     *
+     * @param caption the caption
      */
-    public MaskElementField() {
-        container.setBeanIdProperty("mename");
-        table.setContainerDataSource(container);
-        table.setStyleName(Runo.TABLE_SMALL);
+    public MaskElementField(String caption) {
+        setCaption(caption);
+        table.addStyleName("light");
         table.setVisibleColumns(new Object[]{"mename", "mevalueCollection"});
         table.setColumnHeader("mename", "Element Name");
         table.setColumnHeader("mevalueCollection", "Element Values");
@@ -98,6 +90,26 @@ public class MaskElementField extends CustomField<MaskElementField.MaskElementAr
         table.setTableFieldFactory(new DefaultFieldFactory() {
             @Override
             public Field<?> createField(Container container, Object itemId, Object propertyId, Component uiContext) {
+                if (propertyId.equals("mename")) {
+                    final ComboBox field = new ComboBox();
+                    field.setSizeFull();
+                    field.setRequired(true);
+                    field.setImmediate(true);
+                    field.setNullSelectionAllowed(false);
+                    field.setNewItemsAllowed(false);
+                    field.addItem(Maskelement.TAG_UEI);
+                    field.addItem(Maskelement.TAG_SOURCE);
+                    field.addItem(Maskelement.TAG_NODEID);
+                    field.addItem(Maskelement.TAG_HOST);
+                    field.addItem(Maskelement.TAG_INTERFACE);
+                    field.addItem(Maskelement.TAG_SNMPHOST);
+                    field.addItem(Maskelement.TAG_SERVICE);
+                    field.addItem(Maskelement.TAG_SNMP_EID);
+                    field.addItem(Maskelement.TAG_SNMP_SPECIFIC);
+                    field.addItem(Maskelement.TAG_SNMP_GENERIC);
+                    field.addItem(Maskelement.TAG_SNMP_COMMUNITY);
+                    return field;
+                }
                 if (propertyId.equals("mevalueCollection")) {
                     final TextField field = new TextField();
                     field.setConverter(new CsvListConverter());
@@ -106,49 +118,47 @@ public class MaskElementField extends CustomField<MaskElementField.MaskElementAr
                 return super.createField(container, itemId, propertyId, uiContext);
             }
         });
-        add = new Button("Add", (Button.ClickListener) this);
-        delete = new Button("Delete", (Button.ClickListener) this);
         toolbar.addComponent(add);
         toolbar.addComponent(delete);
         toolbar.setVisible(table.isEditable());
     }
 
+    /* (non-Javadoc)
+     * @see com.vaadin.ui.CustomField#initContent()
+     */
     @Override
     public Component initContent() {
-        VerticalLayout layout = new VerticalLayout();
+        final VerticalLayout layout = new VerticalLayout();
         layout.addComponent(table);
         layout.addComponent(toolbar);
         layout.setComponentAlignment(toolbar, Alignment.MIDDLE_RIGHT);
         return layout;
     }
 
+    /* (non-Javadoc)
+     * @see com.vaadin.ui.AbstractField#getType()
+     */
     @Override
-    public Class<MaskElementArrayList> getType() {
-        return MaskElementArrayList.class;
+    @SuppressWarnings("unchecked")
+    public Class<? extends List<Maskelement>> getType() {
+        return (Class<? extends List<Maskelement>>) new ArrayList<Maskelement>().getClass();
     }
 
+    /* (non-Javadoc)
+     * @see com.vaadin.ui.AbstractField#setInternalValue(java.lang.Object)
+     */
     @Override
-    public void setPropertyDataSource(Property newDataSource) {
-        Object value = newDataSource.getValue();
-        if (value instanceof List<?>) {
-            @SuppressWarnings("unchecked")
-            List<Maskelement> beans = (List<Maskelement>) value;
-            container.removeAllItems();
-            container.addAll(beans);
-            table.setPageLength(beans.size());
-        } else {
-            throw new ConversionException("Invalid type");
-        }
-        super.setPropertyDataSource(newDataSource);
+    protected void setInternalValue(List<Maskelement> maskElements) {
+        container.removeAllItems();
+        container.addAll(maskElements);
     }
 
+    /* (non-Javadoc)
+     * @see com.vaadin.ui.AbstractField#getInternalValue()
+     */
     @Override
-    public MaskElementArrayList getValue() {
-        MaskElementArrayList beans = new MaskElementArrayList();
-        for (Object itemId: container.getItemIds()) {
-            beans.add(container.getItem(itemId).getBean());
-        }
-        return beans;
+    protected List<Maskelement> getInternalValue() {
+        return container.getOnmsBeans();
     }
 
     /* (non-Javadoc)
@@ -180,8 +190,8 @@ public class MaskElementField extends CustomField<MaskElementField.MaskElementAr
      */
     private void addHandler() {
         Maskelement e = new Maskelement();
-        e.setMename("??"); // A non null value is required here.
-        container.addBean(e);
+        e.setMename("??");
+        container.addOnmsBean(e);
     }
 
     /**
@@ -192,17 +202,14 @@ public class MaskElementField extends CustomField<MaskElementField.MaskElementAr
         if (itemId == null) {
             Notification.show("Please select a Mask Element from the table.");
         } else {
-            MessageBox mb = new MessageBox(getUI().getWindows().iterator().next(),
-                                           "Are you sure?",
-                                           MessageBox.Icon.QUESTION,
-                                           "Do you really want to remove the selected Mask Element field ?<br/>This action cannot be undone.",
-                                           new MessageBox.ButtonConfig(MessageBox.ButtonType.YES, "Yes"),
-                                           new MessageBox.ButtonConfig(MessageBox.ButtonType.NO, "No"));
-            mb.addStyleName(Runo.WINDOW_DIALOG);
-            mb.show(new EventListener() {
-                @Override
-                public void buttonClicked(ButtonType buttonType) {
-                    if (buttonType == MessageBox.ButtonType.YES) {
+            ConfirmDialog.show(getUI(),
+                               "Are you sure?",
+                               "Do you really want to remove the selected Mask Element field ?\nThis action cannot be undone.",
+                               "Yes",
+                               "No",
+                               new ConfirmDialog.Listener() {
+                public void onClose(ConfirmDialog dialog) {
+                    if (dialog.isConfirmed()) {
                         table.removeItem(itemId);
                     }
                 }

@@ -30,20 +30,22 @@ package org.opennms.netmgt.mock;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
 import org.opennms.netmgt.collectd.SnmpCollector;
+import org.opennms.netmgt.collection.api.AttributeGroupType;
 import org.opennms.netmgt.config.datacollection.DatacollectionConfig;
 import org.opennms.netmgt.config.DataCollectionConfigDao;
 import org.opennms.netmgt.config.MibObject;
 import org.opennms.netmgt.config.datacollection.ResourceType;
-import org.opennms.netmgt.model.RrdRepository;
+import org.opennms.netmgt.rrd.RrdRepository;
 
 public class MockDataCollectionConfig implements DataCollectionConfigDao {
     
-    public static final String initalMibObjects[][] = {
+    public static final String[][] initalMibObjects = {
         {
             "sysLocation", ".1.3.6.1.2.1.1.6", "0", "string"
         },
@@ -134,7 +136,7 @@ public class MockDataCollectionConfig implements DataCollectionConfigDao {
         mibObj.setType(type);
         mibObj.setInstance(instance);
         mibObj.setGroupName("ifIndex".equals(instance) ? "interface" : "node");
-        mibObj.setGroupIfType("ifIndex".equals(instance) ? "all" : "ignored");
+        mibObj.setGroupIfType("ifIndex".equals(instance) ? AttributeGroupType.IF_TYPE_ALL : AttributeGroupType.IF_TYPE_IGNORE);
         return mibObj;
     }
     public MibObject createAttributeType(String alias, String oid, String instance, String type) {
@@ -227,6 +229,13 @@ public class MockDataCollectionConfig implements DataCollectionConfigDao {
 
     @Override
     public List<String> getAvailableMibGroups() {
+        return null;
+    }
+
+    public void reload() {
+    }
+
+    public Date getLastUpdate() {
         return null;
     }
 

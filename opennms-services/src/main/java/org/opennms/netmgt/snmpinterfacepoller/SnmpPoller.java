@@ -30,13 +30,13 @@ package org.opennms.netmgt.snmpinterfacepoller;
 
 
 import org.apache.commons.lang.StringUtils;
+import org.opennms.core.network.IPAddress;
+import org.opennms.core.network.IPAddressRange;
 import org.opennms.netmgt.EventConstants;
 import org.opennms.netmgt.config.SnmpEventInfo;
 import org.opennms.netmgt.config.SnmpInterfacePollerConfig;
 import org.opennms.netmgt.daemon.AbstractServiceDaemon;
 import org.opennms.netmgt.model.OnmsIpInterface;
-import org.opennms.netmgt.model.discovery.IPAddress;
-import org.opennms.netmgt.model.discovery.IPAddressRange;
 import org.opennms.netmgt.model.events.annotations.EventHandler;
 import org.opennms.netmgt.model.events.annotations.EventListener;
 import org.opennms.netmgt.scheduler.LegacyScheduler;
@@ -44,7 +44,6 @@ import org.opennms.netmgt.scheduler.Scheduler;
 import org.opennms.netmgt.snmpinterfacepoller.pollable.PollableInterface;
 import org.opennms.netmgt.snmpinterfacepoller.pollable.PollableNetwork;
 import org.opennms.netmgt.snmpinterfacepoller.pollable.PollableSnmpInterface;
-
 import org.opennms.netmgt.xml.event.Event;
 import org.opennms.netmgt.xml.event.Parm;
 import org.slf4j.Logger;
@@ -60,9 +59,9 @@ import org.slf4j.LoggerFactory;
 @EventListener(name="snmpPoller", logPrefix="snmp-poller")
 public class SnmpPoller extends AbstractServiceDaemon {
     
-    private final static Logger LOG = LoggerFactory.getLogger(SnmpPoller.class);
+    private static final Logger LOG = LoggerFactory.getLogger(SnmpPoller.class);
     
-    private final static SnmpPoller m_singleton = new SnmpPoller();
+    private static final SnmpPoller m_singleton = new SnmpPoller();
 
     private boolean m_initialized = false;
 

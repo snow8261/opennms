@@ -111,7 +111,7 @@ public class MockDatabase extends TemporaryDatabasePostgreSQL implements EventWr
         
         
         
-        getJdbcTemplate().queryForInt("SELECT setval('nodeNxtId', max(nodeid)) FROM node");
+        getJdbcTemplate().queryForObject("SELECT setval('nodeNxtId', max(nodeid)) FROM node", Integer.class);
         
     }
     
@@ -241,8 +241,7 @@ public class MockDatabase extends TemporaryDatabasePostgreSQL implements EventWr
     public Timestamp convertEventTimeToTimeStamp(String time) {
         try {
             Date date = EventConstants.parseToDate(time);
-            Timestamp eventTime = new Timestamp(date.getTime());
-            return eventTime;
+            return new Timestamp(date.getTime());
         } catch (ParseException e) {
             throw new RuntimeException("Invalid date format "+time, e);
         }

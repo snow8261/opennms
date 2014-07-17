@@ -42,7 +42,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Random;
 
-import junit.framework.Assert;
+import org.junit.Assert;
 import junit.framework.AssertionFailedError;
 
 import org.apache.commons.io.FileUtils;
@@ -54,11 +54,8 @@ import org.slf4j.LoggerFactory;
  * File anticipator.
  *
  * Example usage with late initialization:
- * <pre>
- * private FileAnticipator m_fileAnticipator;
  *
  * @author <a href="mailto:dj@opennms.org">DJ Gregor</a>
- * @version $Id: $
  */
 public class FileAnticipator extends Assert {
 	
@@ -92,10 +89,12 @@ public class FileAnticipator extends Assert {
         }
     }
     
-    /** {@inheritDoc} */
+    /** {@inheritDoc} 
+     * @throws Throwable */
     @Override
-    protected void finalize() {
+    protected void finalize() throws Throwable {
         tearDown();
+        super.finalize();
     }
 
     /**
@@ -196,7 +195,7 @@ public class FileAnticipator extends Assert {
             fail("Could not initialize SecureRandom: " + e);
         }*/
         
-        byte bytes[] = new byte[length];
+        byte[] bytes = new byte[length];
         random.nextBytes(bytes);
         
         StringBuffer sb = new StringBuffer();

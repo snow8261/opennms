@@ -34,7 +34,7 @@ public class SVGElement extends Element{
 
     protected SVGElement() {}
     
-    public final static native SVGElement wrapElement(Element svg) /*-{
+    public static final native SVGElement wrapElement(Element svg) /*-{
         return elem;
     }-*/;
 
@@ -85,6 +85,5 @@ public class SVGElement extends Element{
     public final native SVGMatrix getScreenCTM() /*-{
         return this.getScreenCTM();
     }-*/;
-
 
 }

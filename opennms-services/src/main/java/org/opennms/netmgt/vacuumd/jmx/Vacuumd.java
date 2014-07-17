@@ -28,8 +28,8 @@
 
 package org.opennms.netmgt.vacuumd.jmx;
 
-import org.opennms.netmgt.eventd.EventIpcManagerFactory;
 import org.opennms.netmgt.model.events.EventIpcManager;
+import org.opennms.netmgt.model.events.EventIpcManagerFactory;
 
 /**
  * Implementws the VacuumdMBead interface and delegeates the mbean
@@ -127,6 +127,12 @@ public class Vacuumd implements VacuumdMBean {
     @Override
     public String getStatusText() {
         return org.opennms.core.fiber.Fiber.STATUS_NAMES[getStatus()];
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public long getNumAutomations() {
+        return getVacuumd().getNumAutomations();
     }
 
     private org.opennms.netmgt.vacuumd.Vacuumd getVacuumd() {

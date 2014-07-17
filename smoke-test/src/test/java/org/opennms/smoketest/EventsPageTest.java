@@ -29,52 +29,55 @@
 package org.opennms.smoketest;
 
 import org.junit.Before;
+import org.junit.FixMethodOrder;
 import org.junit.Test;
+import org.junit.runners.MethodSorters;
 
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class EventsPageTest extends OpenNMSSeleniumTestCase {
     @Before
     public void setUp() throws Exception {
     	super.setUp();
-        selenium.click("link=Events");
-        waitForPageToLoad();
+        clickAndWait("link=Events");
     }
 
     @Test
-    public void testAllTextIsPresent() throws Exception {       
-        assertTrue(selenium.isTextPresent("Event Queries"));
-        assertTrue(selenium.isTextPresent("Outstanding and acknowledged events"));
-        assertTrue(selenium.isTextPresent("hit [Enter]"));
-        assertTrue(selenium.isTextPresent("Event ID:"));
+    public void a_testAllTextIsPresent() throws Exception {       
+        waitForText("Event Queries");
+        waitForText("Outstanding and acknowledged events");
+        waitForText("hit [Enter]");
+        waitForText("Event ID:");
     }
-    
+
     @Test
-    public void testAllLinksArePresent() {
+    public void b_testAllLinksArePresent() throws InterruptedException {
         assertEquals("Get details", selenium.getValue("css=input[type='submit']"));
-        assertTrue(selenium.isElementPresent("link=All events"));
-        assertTrue(selenium.isElementPresent("link=Advanced Search"));
+        waitForElement("link=All events");
+        waitForElement("link=Advanced Search");
     }
+
     @Test 
-    public void testAllLinks() {
-        selenium.click("link=All events");
-        waitForPageToLoad();
+    public void c_testAllLinks() throws InterruptedException {
+        clickAndWait("link=All events");
         assertFalse(selenium.isTextPresent("Ack"));
-        assertTrue(selenium.isTextPresent("Event(s) outstanding"));
-        assertTrue(selenium.isTextPresent("Event Text"));
-        assertTrue(selenium.isElementPresent("link=Interface"));
-        selenium.click("css=a[title='Events System Page']");
-        waitForPageToLoad();
-        selenium.click("link=Advanced Search");
-        waitForPageToLoad();
-        assertTrue(selenium.isTextPresent("Advanced Event Search"));
-        assertTrue(selenium.isTextPresent("Searching Instructions"));
-        assertTrue(selenium.isTextPresent("Advanced Event Search"));
-        assertTrue(selenium.isElementPresent("name=usebeforetime"));
-        assertTrue(selenium.isElementPresent("name=limit"));
-        assertTrue(selenium.isElementPresent("css=input[type='submit']"));
-        selenium.click("//div[@id='content']/div/h2/a[2]");
-        waitForPageToLoad();
-        selenium.click("link=Log out");
-        waitForPageToLoad();
+        waitForText("Event(s) outstanding");
+        waitForText("Event Text");
+        waitForElement("link=Interface");
+        clickAndWait("css=a[title='Events System Page']");
+        clickAndWait("link=Advanced Search");
+        waitForText("Advanced Event Search");
+        waitForText("Searching Instructions");
+        waitForText("Advanced Event Search");
+        waitForElement("name=usebeforetime");
+        waitForElement("name=limit");
+        waitForElement("css=input[type='submit']");
+        clickAndWait("//div[@id='content']/div/h2/a[2]");
+    }
+
+    @Test
+    public void d_testNodeIdNotFoundPage() throws InterruptedException {
+        selenium.open("/opennms/event/detail.jsp?id=999999999");
+        waitForText("Event Not Found in Database");
     }
 
 }

@@ -36,25 +36,18 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
-
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-
-import org.slf4j.MDC;
-import org.opennms.core.logging.Logging;
 import org.opennms.core.utils.WebSecurityUtils;
-
-
-import org.opennms.web.map.MapsConstants;
-import org.opennms.web.map.view.*;
-
+import org.opennms.web.map.view.Manager;
+import org.opennms.web.map.view.VElement;
+import org.opennms.web.map.view.VMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.servlet.ModelAndView;
-import org.springframework.web.servlet.mvc.Controller;
 
 
 /**
@@ -67,7 +60,7 @@ import org.springframework.web.servlet.mvc.Controller;
  * @version $Id: $
  * @since 1.8.1
  */
-public class SearchMapsController implements Controller {
+public class SearchMapsController extends MapsLoggingController {
 	
 	private static final Logger LOG = LoggerFactory.getLogger(SearchMapsController.class);
 
@@ -95,8 +88,7 @@ public class SearchMapsController implements Controller {
 
 	/** {@inheritDoc} */
         @Override
-	public ModelAndView handleRequest(HttpServletRequest request, HttpServletResponse response) throws IOException {
-            Logging.putPrefix(MapsConstants.LOG4J_CATEGORY);
+	protected ModelAndView handleRequestInternal(HttpServletRequest request, HttpServletResponse response) throws IOException {
 	    int mapWidth = WebSecurityUtils.safeParseInt(request
 	                                                   .getParameter("MapWidth"));
         int mapHeight = WebSecurityUtils.safeParseInt(request
@@ -157,7 +149,7 @@ public class SearchMapsController implements Controller {
                         s++;
        		        }
 			    }
-			    velems.add(manager.newElement(MapsConstants.SEARCH_MAP, new Integer(smapids[i]), MapsConstants.MAP_TYPE, null, x*4*d+s*2*d, y*2*d+d));
+			    velems.add(manager.newElement(MapsConstants.SEARCH_MAP, Integer.valueOf(smapids[i]), MapsConstants.MAP_TYPE, null, x*4*d+s*2*d, y*2*d+d));
 			} // end for
 
 			//get map

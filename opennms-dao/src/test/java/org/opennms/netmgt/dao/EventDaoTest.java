@@ -31,14 +31,16 @@ package org.opennms.netmgt.dao;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.opennms.core.spring.BeanUtils;
 import org.opennms.core.test.OpenNMSJUnit4ClassRunner;
 import org.opennms.core.test.db.annotations.JUnitTemporaryDatabase;
-import org.opennms.core.utils.BeanUtils;
 import org.opennms.netmgt.dao.api.DistPollerDao;
 import org.opennms.netmgt.dao.api.EventDao;
 import org.opennms.netmgt.dao.api.NodeDao;
@@ -118,5 +120,14 @@ public class EventDaoTest implements InitializingBean {
         assertNotNull(newEvent.getServiceType());
         assertEquals(service.getNodeId(), newEvent.getNode().getId());
         assertEquals(event.getIpAddr(), newEvent.getIpAddr());
+    }
+
+    @Test
+    @Transactional
+    public void testGetEventsAfterDate() {
+        List<String> ueiList = new ArrayList<String>();
+        ueiList.add("uei/1"); // dummy
+        ueiList.add("uei/2"); // dummy
+        m_eventDao.getEventsAfterDate(ueiList, new Date()); // we just want to ensure that no exception is thrown :)
     }
 }
